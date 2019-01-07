@@ -3,7 +3,7 @@ node_modules
 .vscode-test/
 *.vsix
 *.yaml
-images
+/images/
 .vscode
 themes/dark_vs.json
 themes/seti.woff
