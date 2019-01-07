@@ -10,5 +10,3 @@ themes/seti.woff
 themes/light_vs.json
 themes/fthtml.vs-seti-icon-theme.json
 typings/fthtml.d.ts
-.github
-!.github/images/*
