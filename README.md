@@ -23,6 +23,7 @@ This extension contributes the following settings (prefix them with `fthtml`):
   ![newLinesOnEnter](.github/images/newlines.gif)
 * `format.braces.newLinesOnEnterAfterAttributes`:
   > Specify if you want your braces to go to a new line after pressing 'Enter' directly after curly braces auto-complemention when the ftHTML element has an attributes group (à la C#)
+  
   ![newLinesOnEnterWithAttributes](.github/images/newlines2.gif)
 * `validateOnSave`:
   > Everytime you save a ftHTML file it will be validated by the ftHTML parser. The first found issue will be reported in the 'Problems' panel for each file validated. 
