@@ -1,0 +1,50 @@
+{
+  "Pragma - Variable": {
+    "prefix": "vars",
+    "body": [
+      "#vars",
+      "\t${1:varName} \"${2:<value>}\"$3",
+      "#end",
+      "$0"
+    ],
+    "description": "Vars Pragma for defining variables"
+  },
+  "HTML template": {
+    "prefix": "html",
+    "body": [
+      "doctype \"html\"",
+      "html (lang=en)",
+      "{",
+      "\thead",
+      "\t{",
+      "\t\tmeta(charset=utf-8)",
+      "\t\tmeta(http-equiv=X-UA-Compatible content=\"IE=edge\")",
+      "\t\tmeta(name=viewport content=\"width=device-width, initial-scale=1\")",
+      "\t\ttitle \"${1:Page Title}\"",
+      "\t\tlink(rel=stylesheet type=\"text/css\" media=screen href=${2:main.css})",
+      "\t\t${3:script(src=${4:main.js})}",
+      "\t}",
+      "\tbody",
+      "\t{",
+      "\t\t$0",
+      "\t}",
+      "}"
+    ],
+    "description": "HTML5 template starting point"
+  },
+  "Comment": {
+    "prefix": "comment",
+    "body": "comment \"$1\"",
+    "description": "Comment keyword used to display comments in DOM"
+  },
+  "Doctype": {
+    "prefix": "doctype",
+    "body": "doctype \"$1\"",
+    "description": "Specifies the doctype"
+  },
+  "Import": {
+    "prefix": "import",
+    "body": "import \"$1\"",
+    "description": "Imports another ftHTML file and parses it inline of import position. Supports relative paths only, all imports must be of type 'ftHTML'"
+  }
+}

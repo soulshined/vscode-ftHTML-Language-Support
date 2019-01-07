@@ -1,0 +1,128 @@
+{
+    "name": "fthtml-language-support",
+    "displayName": "ftHTML Language Support",
+    "description": "Support for fthtml preprocessor language, including automatic file detection, syntax highlighting, basic formatting, snippets and more",
+    "version": "1.0.0",
+    "publisher": "davidfreer",
+    "bugs": {
+        "url": "https://github.com/soulshined/Visual-Studio-Code-ftHTML-Extension/issues"
+    },
+    "license": "MIT",
+    "homepage": "https://github.com/soulshined/Visual-Studio-Code-ftHTML-Extension",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/soulshined/Visual-Studio-Code-ftHTML-Extension"
+    },
+    "engines": {
+        "vscode": "^1.30.0"
+    },
+    "keywords": [
+        "fthtml",
+        "html",
+        "preprocessor"
+    ],
+    "icon": "./images/icon.png",
+    "categories": [
+        "Programming Languages",
+        "Snippets",
+        "Themes",
+        "Other"
+    ],
+    "activationEvents": [
+        "onLanguage:fthtml"
+    ],
+    "main": "./out/extension",
+    "contributes": {
+        "themes": [
+            {
+                "label": "Light+ (default light & ftHTML)",
+                "uiTheme": "vs",
+                "path": "./themes/fthtml.default.light.json"
+            },
+            {
+                "label": "Dark+ (default dark & ftHTML)",
+                "uiTheme": "vs-dark",
+                "path": "./themes/fthtml.default.dark.json"
+            }
+        ],
+        "iconThemes": [
+            {
+                "id": "fthtml",
+                "label": "Seti (Visual Studio Code & ftHTML)",
+                "path": "./themes/fthtml.vs-seti-icon-theme.json"
+            }
+        ],
+        "languages": [
+            {
+                "id": "fthtml",
+                "aliases": [
+                    "ftHTML",
+                    "fthtml"
+                ],
+                "extensions": [
+                    ".fthtml",
+                    ".ftHTML"
+                ],
+                "configuration": "./language-configuration.json"
+            }
+        ],
+        "grammars": [
+            {
+                "language": "fthtml",
+                "scopeName": "source.fthtml",
+                "path": "./syntaxes/fthtml.tmLanguage.json"
+            }
+        ],
+        "snippets": [
+            {
+                "language": "fthtml",
+                "scopeName": "source.fthtml",
+                "path": "./snippets/fthtml.json"
+            }
+        ],
+        "configurationDefaults": {
+            "[fthtml]": {
+                "editor.formatOnType": true,
+                "editor.autoClosingBrackets": "languageDefined"
+            }
+        },
+        "configuration": {
+            "title": "ftHTML",
+            "properties": {
+                "fthtml.format.braces.newLinesOnEnter": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "Specify if you want your braces to go to a new line after pressing 'Enter' directly after curly braces auto-completion (à la C#)"
+                },
+                "fthtml.format.braces.newLinesOnEnterAfterAttributes": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "Specify if you want your braces to go to a new line after pressing 'Enter' directly after curly braces auto-complemention when the ftHTML element has an attributes group (à la C#)"
+                },
+                "fthtml.validateOnSave": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "This will validate the syntax everytime you save an ftHTML file (stops validating at first found error: displays in 'Problems Panel')"
+                }
+            }
+        }
+    },
+    "galleryBanner": {
+        "color": "#2d323b",
+        "theme": "dark"
+    },
+    "scripts": {
+        "vscode:prepublish": "npm run compile",
+        "compile": "tsc -p ./",
+        "watch": "tsc -watch -p ./",
+        "postinstall": "node ./node_modules/vscode/bin/install",
+        "test": "npm run compile && node ./node_modules/vscode/bin/test"
+    },
+    "devDependencies": {
+        "@types/mocha": "^2.2.42",
+        "@types/node": "^8.10.25",
+        "fthtml": "^0.7.3",
+        "typescript": "^2.6.1",
+        "vscode": "^1.1.21"
+    }
+}

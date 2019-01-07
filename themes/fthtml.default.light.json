@@ -1,0 +1,52 @@
+{
+  "$schema": "vscode://schemas/color-theme",
+  "name": "Light+ (default light & ftHTML)",
+  "include" : "./light_vs.json",
+  "tokenColors":[
+    {
+      "name": "variable.other.fthtml",
+      "scope": "variable.other.fthtml",
+      "settings": {
+        "foreground": "#C586C0",
+        "fontStyle": "italic"
+      }
+    },
+    {
+      "name": "directives",
+      "scope": "keyword.control.directive.fthtml",
+      "settings": {
+        "foreground": "#808080"
+      }
+    },
+    {
+      "name": "keyword.other.fthtml",
+      "scope": "keyword.other.import.fthtml, keyword.other.comment.fthtml,keyword.other.doctype.fthtml",
+      "settings": {
+        "foreground": "#46B49E",
+        "fontStyle": "bold"
+      }
+    },
+    {
+      "name": "strings",
+      "scope": "string.quoted.single.fthtml, string.quoted.double.fthtml, string.unquoted.fthtml",
+      "settings": {
+        "foreground": "#CE9178"
+      }
+    },
+    {
+      "name": "entities",
+      "scope": "entity.other.attribute-name.class.fthtml, entity.other.attribute-name.id.fthtml, entity.other.attribute-name.fthtml",
+      "settings": {
+        "foreground": "#A31515"
+      }
+    },
+    {
+      "name": "invalid",
+      "scope": "invalid.illegal",
+      "settings": {
+        "foreground": "#F00",
+        "fontStyle": "bold"
+      }
+    }
+  ]
+}
