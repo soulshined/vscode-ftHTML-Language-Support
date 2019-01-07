@@ -4,15 +4,13 @@ This extensions provides language support for [ftHTML preprocesser](https://www.
 
 Support includes, but not limited to:
 
-|
-| ---|
-| [Configurations](#configurations) 
-| [UI Themes](#ui-themes) 
-| [Icon Theme](#icon-theme) 
-| [Syntax Highlighting](#syntax-highlighting) 
-| [Syntax Validation](#syntax-validation) 
-| [Snippets](#snippets) 
-|
+* [Configurations](#configurations) 
+* [UI Themes](#ui-themes) 
+* [Icon Theme](#icon-theme) 
+* [Syntax Highlighting](#syntax-highlighting) 
+* [Syntax Validation](#syntax-validation) 
+* [Snippets](#snippets) 
+
 
 ## Configurations
 [[top]](#fthtml)

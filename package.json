@@ -5,13 +5,13 @@
     "version": "1.0.0",
     "publisher": "davidfreer",
     "bugs": {
-        "url": "https://github.com/soulshined/Visual-Studio-Code-ftHTML-Extension/issues"
+        "url": "https://github.com/soulshined/vscode-ftHTML-Language-Support/issues"
     },
     "license": "MIT",
-    "homepage": "https://github.com/soulshined/Visual-Studio-Code-ftHTML-Extension",
+    "homepage": "https://github.com/soulshined/vscode-ftHTML-Language-Support",
     "repository": {
         "type": "git",
-        "url": "https://github.com/soulshined/Visual-Studio-Code-ftHTML-Extension"
+        "url": "https://github.com/soulshined/vscode-ftHTML-Language-Support"
     },
     "engines": {
         "vscode": "^1.30.0"
