@@ -20,10 +20,10 @@ This extension contributes the following settings (prefix them with `fthtml`):
 * `format.braces.newLinesOnEnter`:
   > Specify if you want your braces to go to a new line after pressing 'Enter' directly after curly braces auto-completion (à la C#)
 
-  ![newLinesOnEnter](.github/images/newlines.gif)
+  ![newLinesOnEnter](github/images/newlines.gif)
 * `format.braces.newLinesOnEnterAfterAttributes`:
   > Specify if you want your braces to go to a new line after pressing 'Enter' directly after curly braces auto-complemention when the ftHTML element has an attributes group (à la C#)
-  ![newLinesOnEnterWithAttributes](.github/images/newlines2.gif)
+  ![newLinesOnEnterWithAttributes](github/images/newlines2.gif)
 * `validateOnSave`:
   > Everytime you save a ftHTML file it will be validated by the ftHTML parser. The first found issue will be reported in the 'Problems' panel for each file validated. 
 
@@ -37,10 +37,10 @@ Although I can't possibly add support for all the UI Themes out there, I decided
 For example, if you use the Dark+ (default dark) or Light+ (deafult light) Visual Studio Code Themes, you can simply add personalized syntax highlighting for ftHTML, while keeping the same UI theme. The following examples demonstrate the differences:
 
 **Dark:**
-![dark_showcase](.github/images/dark_showcase.PNG)
+![dark_showcase](github/images/dark_showcase.PNG)
 
 **Light:**
-![light_showcase](.github/images/light_showcase.PNG)
+![light_showcase](github/images/light_showcase.PNG)
 
 > Future support will allow you to customize the token colors permanently via workspace/user settings, I just wanted to get an initial extension pushed out
 
@@ -75,7 +75,7 @@ The *"imports/footer"* file's syntax gets omitted when validating
 
 Example output:
 
-![validation example](.github/images/validation.PNG)
+![validation example](github/images/validation.PNG)
 
 ## Snippets
 [[top]](#fthtml)
