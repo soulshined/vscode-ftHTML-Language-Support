@@ -48,8 +48,8 @@ export default class FTHTMLParserProvider implements vscode.Disposable {
         if ((match = /\s\@ (\d+)\:(\d+)\-(\d+)/.exec(error)) !== null) {
           const [line,col,eCol] = [match[1],match[2],match[3]].map((m)=> {return parseInt(m)-1});
           diagnostics.push(new vscode.Diagnostic(new vscode.Range(line, col, line, eCol),error.substring(0,error.indexOf('@')),vscode.DiagnosticSeverity.Error));
-          this.diagnosticCollection.set(doc.uri, diagnostics);
         }
+        this.diagnosticCollection.set(doc.uri, diagnostics);
       }
     }
   }

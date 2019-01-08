@@ -2,7 +2,6 @@ out
 node_modules
 .vscode-test/
 *.vsix
-*.yaml
 /images/
 .vscode
 themes/dark_vs.json
@@ -10,3 +9,4 @@ themes/seti.woff
 themes/light_vs.json
 themes/fthtml.vs-seti-icon-theme.json
 typings/fthtml.d.ts
+.dev/
