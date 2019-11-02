@@ -27,6 +27,14 @@
       }
     },
     {
+      "name": "keyword.other.fthtml",
+      "scope": "keyword.other.template.fthtml",
+      "settings": {
+        "foreground": "#4663b4",
+        "fontStyle": "bold"
+      }
+    },
+    {
       "name": "strings",
       "scope": "string.quoted.single.fthtml, string.quoted.double.fthtml, string.unquoted.fthtml",
       "settings": {

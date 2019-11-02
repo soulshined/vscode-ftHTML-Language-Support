@@ -11,6 +11,7 @@ export class FTHTMLFormattingConfigs extends FTHTMLConfigs {
 
     this.braces = {
       newLinesOnEnter: this._.get('format.braces.newLinesOnEnter', true),
+      newLinesOnEnterAfterEmbeddedLangs: this._.get('format.braces.newLinesOnEnterAfterEmbeddedLanguage', false),
       newLinesOnEnterAfterAttributes: this._.get('format.braces.newLinesOnEnterAfterAttributes', false)
     };
 

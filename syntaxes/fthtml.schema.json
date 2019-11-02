@@ -1,0 +1,89 @@
+{
+  "title": "JSON schema for the ftHTML configuration file",
+  "$schema": "http://json-schema.org/draft-07/schema",
+  "additionalProperties": false,
+  "definitions": {
+    "string_nonempty" : {
+      "type" : "string",
+      "default" : "",
+      "minLength" : 1,
+      "pattern": "^([^\\s].*[^\\s]*)$"
+    }
+  },
+  "properties": {
+    "excluded": {
+      "description": "These are relative to the rootDir property. If the rootDir property is omitted, the workspace root path will be used. If no directories are exlcuded, the compiler will search for all ftHTML files in the directory to be coverted. By default, \"tests\" and \"node_modules\" directories are excluded.",
+      "type": "array",
+      "uniqueItems": true,
+      "default" : ["imports", "templates"],
+      "items": {
+        "$ref": "#/definitions/string_nonempty"
+      }
+    },
+    "importDir": {
+      "allOf": [
+        {
+          "$ref": "#/definitions/string_nonempty"
+        },
+        {
+          "description": "Default import directory for import statements. When this is set you will not have to type the directory with the import statements, just the filename relative to the importDir. This is not relative to the rootDir property, it should be assumed this is relative to the workspace root path.",
+          "default" : "./.fthtml/imports",
+          "examples": [
+            "root/.fthtml/imports"
+          ]
+        }
+      ]
+    },
+    "templateDir": {
+      "allOf": [
+        {
+          "$ref": "#/definitions/string_nonempty"
+        },
+        {
+          "description": "Default template directory for template statements. When this is set you will not have to type the directory with the import statements, just the filename relative to the templateDir. This is not relative to the rootDir property, it should be assumed this is relative to the workspace root path.",
+          "default" : "./.fthtml/templates",
+          "examples": [
+            "root/.fthtml/templates"
+          ]
+        }
+      ]
+    },
+    "exportDir": {
+      "allOf": [
+        {
+          "$ref": "#/definitions/string_nonempty"
+        },
+        {
+          "description": "Sets the default directory of where you want converted files to save to. This is not relative to the rootDir property, it should be assumed this is relative to the workspace root path.",
+          "default" : "./www",
+          "examples": [
+            "root/www/"
+          ]
+        }
+      ]
+    },
+    "rootDir": {
+      "allOf": [
+        {
+          "$ref": "#/definitions/string_nonempty"
+        },
+        {
+          "description": "When this is set the compilier will consider this the root folder for ftHTML files and only look here when converting. Assume this directory is relative to the workspace root path",
+          "default" : "./.fthtml",
+          "examples": [
+            "root/.fthtml"
+          ]
+        }
+      ]
+    },
+    "keepTreeStructure": {
+      "description": "Keep tree structure of your solution explorer when converting ftHTML files to the exportDir destination.",
+      "type": "boolean",
+      "default": true,
+      "enum": [
+        true,
+        false
+      ]
+    }
+  }
+}

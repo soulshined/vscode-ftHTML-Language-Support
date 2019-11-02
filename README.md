@@ -88,5 +88,6 @@ The following snippets can be used to quickly insert text:
 * `comment` - comment "$"
 * `doctype` - doctype "$"
 * `import` - import "$"
+* `template` - Produces a template block for binding property values to an import statement
 
 **Enjoy!**

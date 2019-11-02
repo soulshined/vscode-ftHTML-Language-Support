@@ -14,7 +14,8 @@ class FTHTMLOnTypeProvider implements OnTypeFormattingEditProvider {
         case '\n':
           if (!formats.isAutoClosingBraces) break;
           const lineAt = document.lineAt(pos.line-1);
-          if ((formats.braces.newLinesOnEnter && lineAt.text.match(/^\s*[\w-]+\s*(\/\*(?:\s*(?=\s|(?:\*\/)))?.*?\*\/)*\s*{$/) !== null) ||
+          if ((formats.braces.newLinesOnEnterAfterEmbeddedLangs && lineAt.text.match(/^\s*(?:js|css|php)\s*{$/) !== null) ||
+            (formats.braces.newLinesOnEnter && lineAt.text.match(/^\s*[\w-]+(?<!css|js|php)\s*(\/\*(?:\s*(?=\s|(?:\*\/)))?.*?\*\/)*\s*{$/) !== null) ||
             (formats.braces.newLinesOnEnterAfterAttributes && lineAt.text.match(/^\s*[\w-]+\s*(\/\*(?:\s*(?=\s|(?:\*\/)))?.*?\*\/)*\s*\([^\)]*.*\)\s*{$/) !== null)) {
             result.push(new TextEdit
                           (new Range

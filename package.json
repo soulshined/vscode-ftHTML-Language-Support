@@ -2,7 +2,7 @@
     "name": "fthtml-language-support",
     "displayName": "ftHTML Language Support",
     "description": "Support for fthtml preprocessor language, including automatic file detection, syntax highlighting, basic formatting, snippets and more",
-    "version": "1.1.0",
+    "version": "2.0.0",
     "publisher": "davidfreer",
     "bugs": {
         "url": "https://github.com/soulshined/vscode-ftHTML-Language-Support/issues"
@@ -44,6 +44,12 @@
                 "path": "./themes/fthtml.default.dark.json"
             }
         ],
+        "jsonValidation": [
+            {
+                "fileMatch": "fthtmlconfig.json",
+                "url": "./syntaxes/fthtml.schema.json"
+            }
+        ],
         "iconThemes": [
             {
                 "id": "fthtml",
@@ -69,7 +75,12 @@
             {
                 "language": "fthtml",
                 "scopeName": "source.fthtml",
-                "path": "./syntaxes/fthtml.tmLanguage.json"
+                "path": "./syntaxes/fthtml.tmLanguage.json",
+                "embeddedLanguages": {
+                    "meta.embedded.block.css": "css",
+                    "meta.embedded.block.js": "javascript",
+                    "meta.embedded.block.php": "php"
+                }
             }
         ],
         "snippets": [
@@ -93,6 +104,11 @@
                     "default": true,
                     "description": "Specify if you want your braces to go to a new line after pressing 'Enter' directly after curly braces auto-completion (à la C#)"
                 },
+                "fthtml.format.braces.newLinesOnEnterAfterEmbeddedLanguage": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "Specify if you want your braces to go to a new line after pressing 'Enter' directly after curly braces auto-completion when the ftHTML element is an embedded language (js, css, php)"
+                },
                 "fthtml.format.braces.newLinesOnEnterAfterAttributes": {
                     "type": "boolean",
                     "default": false,
@@ -101,7 +117,17 @@
                 "fthtml.validateOnSave": {
                     "type": "boolean",
                     "default": true,
-                    "description": "This will validate the syntax everytime you save an ftHTML file (stops validating at first found error: displays in 'Problems Panel')"
+                    "description": "This will validate the syntax everytime you save an ftHTML file (stops validating at first found error: displays in 'Problems Panel'). This has less specifity compared to exportOnSave"
+                },
+                "fthtml.exportOnSave": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "This will export the project according to your fthtmlconfig.json rules. fthtmlconfig.json must be a vaild file and located in your workspaces root path. Any issues will be reported in the 'Output' panel"
+                },
+                "fthtml.clearOutputOnSave": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "The 'Output' panel will be cleared every time an ftHTML file is saved and the 'exportOnSave' property is enabled"
                 }
             }
         }
