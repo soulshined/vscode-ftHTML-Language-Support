@@ -4,6 +4,8 @@
 - Support for fthtml v2.0.0
   IMPORTANT: Do not update to 2.0.0 until you have reviewed the docs for fthtml 2.0.
   Some changes for future support of features may break your syntax, or cause weird color coding
+  
+  see www.fthtml.com for documentation and changes
 
 ## [v1.1.0] 
 -  Support for fthtml v1.0.2

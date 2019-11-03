@@ -151,6 +151,6 @@
         "vscode": "^1.1.21"
     },
     "dependencies": {
-        "fthtml": "^1.0.2"
+        "fthtml": "^2.0.0"
     }
 }
