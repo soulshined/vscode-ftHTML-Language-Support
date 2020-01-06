@@ -1,5 +1,10 @@
 # Change Log
 
+## [v2.2.1]
+- Support for fthtml v2.1.0
+
+  see www.fthtml.com for documentation and changes
+
 ## [v2.0.0]
 - Support for fthtml v2.0.0
   IMPORTANT: Do not update to 2.0.0 until you have reviewed the docs for fthtml 2.0.
