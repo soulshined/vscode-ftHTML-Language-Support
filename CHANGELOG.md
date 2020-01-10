@@ -1,5 +1,9 @@
 # Change Log
 
+## [v2.2.2]
+- Supports fthtml v2.1.1
+- Changed the convert process from global bin to a local call so you will always be using the version relative to what the extension uses now.
+
 ## [v2.2.1]
 - Support for fthtml v2.1.0
 

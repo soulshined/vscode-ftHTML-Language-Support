@@ -66,7 +66,16 @@ export default class FTHTMLParserProvider implements vscode.Disposable {
             this.getOutputChannel().appendLine(`fthtmlconfig.json file found...attemping to convert ftHTML ⊷ HTML\n`);
 
             try {
-                let { stdout, stderr } = await exec('fthtml convert', { cwd: ws[0].uri.fsPath });
+                let path = vscode.extensions.getExtension('davidfreer.fthtml-language-support');
+                let channel = this.getOutputChannel();
+
+                if (path === undefined) {
+                    channel.appendLine("No extn path fthtml CLI found...");
+                    return;
+                }
+
+                let { stderr, stdout } = await exec(`node "${path.extensionPath}\\node_modules\\fthtml\\cli\\bin\\fthtml" convert`, { cwd: ws[0].uri.fsPath });
+
                 if (stderr && stderr.length > 0) {
                     this.getOutputChannel().appendLine(stderr);
                     vscode.window.showErrorMessage("Error converting ftHTML", "View")
@@ -76,7 +85,6 @@ export default class FTHTMLParserProvider implements vscode.Disposable {
                 }
 
                 if (stdout) {
-                    let channel = this.getOutputChannel();
                     channel.appendLine(stdout);
                 }
             } catch (error) {
