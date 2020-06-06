@@ -74,7 +74,7 @@ export default class FTHTMLParserProvider implements vscode.Disposable {
                     return;
                 }
 
-                let { stderr, stdout } = await exec(`node "${path.extensionPath}\\node_modules\\fthtml\\cli\\bin\\fthtml" convert`, { cwd: ws[0].uri.fsPath });
+                let { stderr, stdout } = await exec(`node "${path.extensionPath}/node_modules/fthtml/cli/bin/fthtml" convert`, { cwd: ws[0].uri.fsPath });
 
                 if (stderr && stderr.length > 0) {
                     this.getOutputChannel().appendLine(stderr);

@@ -1,5 +1,8 @@
 # Change Log
 
+## [v2.2.3]
+- Fixes issue for mac/linux users
+
 ## [v2.2.2]
 - Supports fthtml v2.1.1
 - Changed the convert process from global bin to a local call so you will always be using the version relative to what the extension uses now.
