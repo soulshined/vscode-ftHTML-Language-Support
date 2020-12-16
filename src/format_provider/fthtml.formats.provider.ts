@@ -1,6 +1,6 @@
 'use strict';
 
-import { OnTypeFormattingEditProvider, TextDocument, Position, FormattingOptions, CancellationToken, TextEdit, Range, workspace, Disposable} from 'vscode';
+import { OnTypeFormattingEditProvider, TextDocument, Position, FormattingOptions, CancellationToken, TextEdit, Range, workspace, Disposable } from 'vscode';
 import { FTHTMLFormattingConfigs } from "./fthtml.formats.configs";
 
 let formats = new FTHTMLFormattingConfigs();
@@ -13,15 +13,15 @@ class FTHTMLOnTypeProvider implements OnTypeFormattingEditProvider {
       switch (chars) {
         case '\n':
           if (!formats.isAutoClosingBraces) break;
-          const lineAt = document.lineAt(pos.line-1);
-          if ((formats.braces.newLinesOnEnterAfterEmbeddedLangs && lineAt.text.match(/^\s*(?:js|css|php)\s*{$/) !== null) ||
-            (formats.braces.newLinesOnEnter && lineAt.text.match(/^\s*[\w-]+(?<!css|js|php)\s*(\/\*(?:\s*(?=\s|(?:\*\/)))?.*?\*\/)*\s*{$/) !== null) ||
+          const lineAt = document.lineAt(pos.line - 1);
+          if ((formats.braces.newLinesOnEnterAfterEmbeddedLangs && lineAt.text.match(/^\s*(?:js|css)\s*{$/) !== null) ||
+            (formats.braces.newLinesOnEnter && lineAt.text.match(/^\s*[\w-]+(?<!css|js)\s*(\/\*(?:\s*(?=\s|(?:\*\/)))?.*?\*\/)*\s*{$/) !== null) ||
             (formats.braces.newLinesOnEnterAfterAttributes && lineAt.text.match(/^\s*[\w-]+\s*(\/\*(?:\s*(?=\s|(?:\*\/)))?.*?\*\/)*\s*\([^\)]*.*\)\s*{$/) !== null)) {
             result.push(new TextEdit
-                          (new Range
-                            (pos.line-1, lineAt.text.length-1, pos.line-1, lineAt.text.length - 1), `\n${lineAt.text.substring(0,lineAt.firstNonWhitespaceCharacterIndex)}`
-                          )
-                       );
+              (new Range
+                (pos.line - 1, lineAt.text.length - 1, pos.line - 1, lineAt.text.length - 1), `\n${lineAt.text.substring(0, lineAt.firstNonWhitespaceCharacterIndex)}`
+              )
+            );
           }
           break;
         default:
@@ -34,7 +34,7 @@ class FTHTMLOnTypeProvider implements OnTypeFormattingEditProvider {
 
 export class FTHTMLFormattingProvider {
   public activate(subscriptions: Disposable[]) {
-    subscriptions.push(workspace.onDidChangeConfiguration(e => formats = new FTHTMLFormattingConfigs())); 
+    subscriptions.push(workspace.onDidChangeConfiguration(e => formats = new FTHTMLFormattingConfigs()));
     return new FTHTMLOnTypeProvider();
   }
 }

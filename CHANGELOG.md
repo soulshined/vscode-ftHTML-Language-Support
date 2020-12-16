@@ -1,5 +1,8 @@
 # Change Log
 
+## [v2.2.4]
+- Update to support ftHTML v2.1.5
+
 ## [v2.2.3]
 - Fixes issue for mac/linux users
 
@@ -16,10 +19,10 @@
 - Support for fthtml v2.0.0
   IMPORTANT: Do not update to 2.0.0 until you have reviewed the docs for fthtml 2.0.
   Some changes for future support of features may break your syntax, or cause weird color coding
-  
+
   see www.fthtml.com for documentation and changes
 
-## [v1.1.0] 
+## [v1.1.0]
 -  Support for fthtml v1.0.2
 
 ## [v1.0.3]

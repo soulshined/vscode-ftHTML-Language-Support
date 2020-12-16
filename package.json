@@ -2,7 +2,7 @@
     "name": "fthtml-language-support",
     "displayName": "ftHTML Language Support",
     "description": "Support for fthtml preprocessor language, including automatic file detection, syntax highlighting, basic formatting, snippets and more",
-    "version": "2.2.3",
+    "version": "2.2.4",
     "publisher": "davidfreer",
     "bugs": {
         "url": "https://github.com/soulshined/vscode-ftHTML-Language-Support/issues"
@@ -78,8 +78,7 @@
                 "path": "./syntaxes/fthtml.tmLanguage.json",
                 "embeddedLanguages": {
                     "meta.embedded.block.css": "css",
-                    "meta.embedded.block.js": "javascript",
-                    "meta.embedded.block.php": "php"
+                    "meta.embedded.block.js": "javascript"
                 }
             }
         ],
@@ -107,7 +106,7 @@
                 "fthtml.format.braces.newLinesOnEnterAfterEmbeddedLanguage": {
                     "type": "boolean",
                     "default": false,
-                    "description": "Specify if you want your braces to go to a new line after pressing 'Enter' directly after curly braces auto-completion when the ftHTML element is an embedded language (js, css, php)"
+                    "description": "Specify if you want your braces to go to a new line after pressing 'Enter' directly after curly braces auto-completion when the ftHTML element is an embedded language (js, css)"
                 },
                 "fthtml.format.braces.newLinesOnEnterAfterAttributes": {
                     "type": "boolean",
@@ -141,7 +140,6 @@
         "vscode:prepublish": "npm run compile",
         "compile": "tsc -p ./",
         "watch": "tsc -watch -p ./",
-        "postinstall": "node ./node_modules/vscode/bin/install",
         "test": "npm run compile && node ./node_modules/vscode/bin/test"
     },
     "devDependencies": {
@@ -149,10 +147,10 @@
         "@types/node": "^8.10.61",
         "@types/vscode": "^1.45.1",
         "mocha": "^7.2.0",
-        "typescript": "^2.6.1",
+        "typescript": "^3.0.0",
         "vscode-test": "^1.4.0"
     },
     "dependencies": {
-        "fthtml": "^2.1.4"
+        "fthtml": "^2.1.5"
     }
 }

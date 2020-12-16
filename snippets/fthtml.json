@@ -47,41 +47,32 @@
     "body": "import \"$1\"",
     "description": "Imports another ftHTML file and parses it inline of import position. Supports relative paths only, all imports must be of type 'ftHTML'"
   },
-  "Template" : {
-    "prefix" : "template",
-    "body" : [
+  "Template": {
+    "prefix": "template",
+    "body": [
       "template {",
-        "\timport \"$1\"",
-        "\t${2:bindingProperty} \"${3:value}\"$4",
+      "\timport \"$1\"",
+      "\t${2:bindingProperty} \"${3:value}\"$4",
       "}"
     ],
-    "description" : "Create a template block where you can import a file while binding values to the import"
+    "description": "Create a template block where you can import a file while binding values to the import"
   },
-  "js" : {
-    "prefix" : "js",
-    "body" : [
+  "js": {
+    "prefix": "js",
+    "body": [
       "js {",
       "\t$1",
       "}"
     ],
-    "description" : "Creates a javascript specific tag. Raw javascript is allowed here and doesn't need quotes to start or end the tags value"
+    "description": "Creates a javascript specific tag. Raw javascript is allowed here and doesn't need quotes to start or end the tags value"
   },
-  "css" : {
-    "prefix" : "css",
-    "body" : [
+  "css": {
+    "prefix": "css",
+    "body": [
       "css {",
       "\t$1",
       "}"
     ],
-    "description" : "Creates a css specific tag. Raw css is allowed here and doesn't need quotes to start or end the tags value"
-  },
-  "php" : {
-    "prefix" : "php",
-    "body" : [
-      "php {",
-      "\t$1",
-      "}"
-    ],
-    "description" : "Creates a php specific tag. Raw php is allowed here and doesn't need quotes to start or end the tags value"
+    "description": "Creates a css specific tag. Raw css is allowed here and doesn't need quotes to start or end the tags value"
   }
 }
