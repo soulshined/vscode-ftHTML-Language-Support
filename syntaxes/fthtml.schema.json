@@ -3,10 +3,10 @@
   "$schema": "http://json-schema.org/draft-07/schema",
   "additionalProperties": false,
   "definitions": {
-    "string_nonempty" : {
-      "type" : "string",
-      "default" : "",
-      "minLength" : 1,
+    "string_nonempty": {
+      "type": "string",
+      "default": "",
+      "minLength": 1,
       "pattern": "^([^\\s].*[^\\s]*)$"
     }
   },
@@ -15,7 +15,9 @@
       "description": "These are relative to the rootDir property. If the rootDir property is omitted, the workspace root path will be used. If no directories are exlcuded, the compiler will search for all ftHTML files in the directory to be coverted. By default, \"tests\" and \"node_modules\" directories are excluded.",
       "type": "array",
       "uniqueItems": true,
-      "default" : ["imports", "templates"],
+      "default": [
+        "**/imports/**"
+      ],
       "items": {
         "$ref": "#/definitions/string_nonempty"
       }
@@ -26,24 +28,24 @@
           "$ref": "#/definitions/string_nonempty"
         },
         {
-          "description": "Default import directory for import statements. When this is set you will not have to type the directory with the import statements, just the filename relative to the importDir. This is not relative to the rootDir property, it should be assumed this is relative to the workspace root path.",
-          "default" : "./.fthtml/imports",
+          "description": "Default import directory for import statements. When this is set you will not have to type the directory to the import statements, just the filepath relative to the importDir. This is not relative to the rootDir property, it should be assumed this is relative to the workspace root path.",
+          "default": "./.fthtml/imports",
           "examples": [
             "root/.fthtml/imports"
           ]
         }
       ]
     },
-    "templateDir": {
+    "jsonDir": {
       "allOf": [
         {
           "$ref": "#/definitions/string_nonempty"
         },
         {
-          "description": "Default template directory for template statements. When this is set you will not have to type the directory with the import statements, just the filename relative to the templateDir. This is not relative to the rootDir property, it should be assumed this is relative to the workspace root path.",
-          "default" : "./.fthtml/templates",
+          "description": "Default json file directory for json binding. When this is set you will not have to type the directory to the json statements, just the filepath relative to the jsonDir. This is not relative to the rootDir property, it should be assumed this is relative to the workspace root path.",
+          "default": "./.fthtml/json",
           "examples": [
-            "root/.fthtml/templates"
+            "root/.fthtml/json"
           ]
         }
       ]
@@ -55,7 +57,7 @@
         },
         {
           "description": "Sets the default directory of where you want converted files to save to. This is not relative to the rootDir property, it should be assumed this is relative to the workspace root path.",
-          "default" : "./www",
+          "default": "./www",
           "examples": [
             "root/www/"
           ]
@@ -69,7 +71,7 @@
         },
         {
           "description": "When this is set the compilier will consider this the root folder for ftHTML files and only look here when converting. Assume this directory is relative to the workspace root path",
-          "default" : "./.fthtml",
+          "default": "./.fthtml",
           "examples": [
             "root/.fthtml"
           ]
@@ -84,6 +86,25 @@
         true,
         false
       ]
+    },
+    "prettify": {
+      "description": "By default, ftHTML is interperted and exported compressed (minified). This configuartion ensures the HTML output is beautified.",
+      "type": "boolean",
+      "default": false,
+      "enum": [
+        true,
+        false
+      ]
+    },
+    "globalvars": {
+      "description": "This allows you to quickly call and reference variables in any of your .fthtml files without the need to declare or assign them in that respective file. The naming conventions follow regular variable naming conventions and can not be reserved words.",
+      "type": "object",
+      "patternProperties": {
+        "^[\\w-]+$": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
     }
   }
 }

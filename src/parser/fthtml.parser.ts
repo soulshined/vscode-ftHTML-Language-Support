@@ -76,7 +76,7 @@ export default class FTHTMLParserProvider implements vscode.Disposable {
 
                 let { stderr, stdout } = await exec(`node "${path.extensionPath}/node_modules/fthtml/cli/bin/fthtml" convert`, { cwd: ws[0].uri.fsPath });
 
-                if (stderr && stderr.replace("DEPRECATED: The 'template' keyword is now deprecated. Preparring for a future release; moving forward the import keyword will handle imports and template imports", "").trim().length > 0) {
+                if (stderr && stderr.length > 0) {
                     this.getOutputChannel().appendLine(stderr);
                     vscode.window.showErrorMessage("Error converting ftHTML", "View")
                         .then((val) => {

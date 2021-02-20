@@ -2,7 +2,7 @@
     "name": "fthtml-language-support",
     "displayName": "ftHTML Language Support",
     "description": "Support for fthtml preprocessor language, including automatic file detection, syntax highlighting, basic formatting, snippets and more",
-    "version": "2.2.4",
+    "version": "3.0.0",
     "publisher": "davidfreer",
     "bugs": {
         "url": "https://github.com/soulshined/vscode-ftHTML-Language-Support/issues"
@@ -32,18 +32,6 @@
     ],
     "main": "./out/extension",
     "contributes": {
-        "themes": [
-            {
-                "label": "Light+ (default light & ftHTML)",
-                "uiTheme": "vs",
-                "path": "./themes/fthtml.default.light.json"
-            },
-            {
-                "label": "Dark+ (default dark & ftHTML)",
-                "uiTheme": "vs-dark",
-                "path": "./themes/fthtml.default.dark.json"
-            }
-        ],
         "jsonValidation": [
             {
                 "fileMatch": "fthtmlconfig.json",
@@ -151,6 +139,6 @@
         "vscode-test": "^1.4.0"
     },
     "dependencies": {
-        "fthtml": "^2.1.5"
+        "fthtml": "^3.0.0"
     }
 }

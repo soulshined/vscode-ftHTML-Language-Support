@@ -1,5 +1,38 @@
 # Change Log
 
+## [v3.0.0]
+
+- Support for ftHTML 3.0.0
+  > NOTE: This is a breaking update since templates have been removed. Please update after reading the
+  > documentation: https://www.fthtml.com/changelog/#Smaragdine
+
+- Add code action
+  - Quickly convert a simple element to a parent element
+- Add suggestions (autocomplete) for all language specific features
+  - Macros
+  - Functions
+  - Embedded Langs
+  - Keywords
+- Added hover documentation and suggestion details
+- Added search by symbol (variables and imports are considered symbols)
+- Added 'GoTo Definition' and 'Peek Definitions' functionality for import files and variables
+  - This works with the new 'by reference' imports as well
+- fthtmlconfig.json
+  - Removed `templateDir` (templates are now called with the `importDir` as well)
+  - Add `jsonDir`
+  - Add `prettify` to define if the output file should be minified or not
+  - Add `globalvars` (define variables here and then call these variables from any file)
+- Small formatting implementation
+- Added '#region' to the code folding strategy
+- Removed dark and light default altered themes now that vscode allows editing tokens from settings.
+
+### Roadmap:
+
+- A complete custom formatter
+- File name autocomplete for import/templates/json
+- An HTML to ftHTML converter on copy/paste
+- Better 'Problems' identifier and diagnostic information
+
 ## [v2.2.4]
 - Update to support ftHTML v2.1.5
 

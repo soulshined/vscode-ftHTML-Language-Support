@@ -4,13 +4,15 @@ This extensions provides language support for [ftHTML preprocesser](https://www.
 
 Support includes, but not limited to:
 
-* [Configurations](#configurations) 
-* [UI Themes](#ui-themes) 
-* [Icon Theme](#icon-theme) 
-* [Syntax Highlighting](#syntax-highlighting) 
-* [Syntax Validation](#syntax-validation) 
-* [Snippets](#snippets) 
-
+* [Configurations](#configurations)
+* [UI Themes](#ui-themes)
+* [Icon Theme](#icon-theme)
+* [Syntax Validation](#syntax-validation)
+* [Code Actions](#code-actions)
+* [Snippets](#snippets)
+* [Go To Definitions](#go-to-definitions)
+* [Documentation](#documentation)
+* [Symbol Support](#symbol-support)
 
 ## Configurations
 [[top]](#fthtml)
@@ -23,27 +25,12 @@ This extension contributes the following settings (prefix them with `fthtml`):
   ![newLinesOnEnter](.github/images/newlines.gif)
 * `format.braces.newLinesOnEnterAfterAttributes`:
   > Specify if you want your braces to go to a new line after pressing 'Enter' directly after curly braces auto-complemention when the ftHTML element has an attributes group (à la C#)
-  
+
   ![newLinesOnEnterWithAttributes](.github/images/newlines2.gif)
 * `validateOnSave`:
-  > Everytime you save a ftHTML file it will be validated by the ftHTML parser. The first found issue will be reported in the 'Problems' panel for each file validated. 
+  > Everytime you save a ftHTML file it will be validated by the ftHTML parser. The first found issue will be reported in the 'Problems' panel for each file validated.
 
   > Please note this happens any time you open an ftHTML file as well, which can not be disabled at this time.
-
-## UI Themes
-[[top]](#fthtml)
-
-Although I can't possibly add support for all the UI Themes out there, I decided to extend the default VS Code themes. 
-
-For example, if you use the Dark+ (default dark) or Light+ (deafult light) Visual Studio Code Themes, you can simply add personalized syntax highlighting for ftHTML, while keeping the same UI theme. The following examples demonstrate the differences:
-
-**Dark:**
-![dark_showcase](.github/images/dark_showcase.PNG)
-
-**Light:**
-![light_showcase](.github/images/light_showcase.PNG)
-
-> Future support will allow you to customize the token colors permanently via workspace/user settings, I just wanted to get an initial extension pushed out
 
 ## Icon Theme
 [[top]](#fthtml)
@@ -55,11 +42,6 @@ To enable this type this in your command palette:
 > \>Preferences: File Icon Theme
 
 And select *Seti (Visual Studio Code & ftHTML)*
-
-## Syntax Highlighting
-[[top]](#fthtml)
-
-If you do not want to use one of the [UI themes](#ui-themes) noted above for a more personalize ftHTML experience, I tried to keep the language descriptors as close to the tmLanguage standards as possible, thereby ensuring a generic color-coded support. However, if you notice a UI Theme not correctly supporting ftHTML scopes according to the tmLanguage standards, you would need to discuss with the extension dev to include it.
 
 ## Syntax Validation
 [[top]](#fthtml)
@@ -78,8 +60,22 @@ Example output:
 
 ![validation example](.github/images/validation.PNG)
 
+## Code Actions
+[[top]](#fthtml)
+
+* Quickly convert a 'simple' element to a parent element.
+The following examples will all match as eligible for this code action
+
+```fthtml
+div <string | macro>
+
+div (...atrs) <string | macro>
+```
+
 ## Snippets
 [[top]](#fthtml)
+
+In addition to snippets this extension supports all language specific macros, functions, keywords and embedded code block code completions.
 
 The following snippets can be used to quickly insert text:
 
@@ -89,5 +85,24 @@ The following snippets can be used to quickly insert text:
 * `doctype` - doctype "$"
 * `import` - import "$"
 * `template` - Produces a template block for binding property values to an import statement
+* `child` - Produces a snippet for an element with children
+* `childWithAttributes` - Produces a snippet for an element with attributes and children
+
+## Go To Definitions
+[[top]](#fthtml)
+
+Quickly peek or go to definitions for import files, template files or user defined variables.
+
+For variables, global vars defined in the `fthtmlconfig.json` file are also included
+
+## Documentation
+[[top]](#fthtml)
+
+All language specific functions, macros and keywords are documented for on-hover events and shortcut previews. For functions, all arguments are documented as well and can be seen using the parameter hints functionality
+
+## Symbol Support
+[[top]](#fthtml)
+
+Symbols are identified for imports and user defined variables
 
 **Enjoy!**

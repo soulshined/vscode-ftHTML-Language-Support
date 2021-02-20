@@ -15,6 +15,6 @@ export class FTHTMLFormattingConfigs extends FTHTMLConfigs {
       newLinesOnEnterAfterAttributes: this._.get('format.braces.newLinesOnEnterAfterAttributes', false)
     };
 
-    this.isAutoClosingBraces = workspace.getConfiguration('editor',null).get('autoClosingBrackets') !== 'never';
+    this.isAutoClosingBraces = workspace.getConfiguration('editor', null).get('autoClosingBrackets') !== 'never';
   }
 }
