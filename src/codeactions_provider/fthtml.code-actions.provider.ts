@@ -20,7 +20,7 @@ export default class FTHTMLCodeActionProvider implements CodeActionProvider {
 
     private getConvertToChildElementMatch(text: string) {
         //match div (...attrs)? "value" or div (...attrs)? __MACRO__
-        let match = text.match(`^\\s*([\\w-]+)(?<!import|comment|doctype|${PATTERNS.FUNCTIONS}|${PATTERNS.MACROS})\\s*(\\([^\\)]*\\))?(\\s+)((['\"])([^\\9]*\\9)|${PATTERNS.MACROS})\\s*$`);
+        let match = text.match(`^(\\s*)([\\w-]+)(?<!import|comment|doctype|${PATTERNS.FUNCTIONS}|${PATTERNS.MACROS})\\s*(\\([^\\)]*\\))?(\\s+)((['\"])([^\\9]*\\9)|${PATTERNS.MACROS})\\s*$`);
 
         return match;
     }
@@ -33,16 +33,16 @@ export default class FTHTMLCodeActionProvider implements CodeActionProvider {
         const tabSize: number = editor.options.tabSize ?? 0;
         let brace = '\{';
 
-        if ((match[5] && formats.braces.newLinesOnEnterAfterAttributes) || (!match[5] && formats.braces.newLinesOnEnter)) {
-            brace = '\n\{';
+        if ((match[6] && formats.braces.newLinesOnEnterAfterAttributes) || (!match[6] && formats.braces.newLinesOnEnter)) {
+            brace = `\n${match[1]}\{`;
         }
 
         const fix = new CodeAction(`Convert to child element`, CodeActionKind.RefactorRewrite);
         fix.edit = new WorkspaceEdit();
 
-        const tag = match[1];
-        const attrs = match[5] ? ` ${match[5]} ` : ' ';
-        const child = match[7];
+        const tag = match[2];
+        const attrs = match[6] ? ` ${match[6]} ` : ' ';
+        const child = match[8];
 
         fix.edit.replace(document.uri, new Range(pos, new Position(pos.line, pos.character + match[0].length)), `${tag}${attrs}${brace}\n` + tab.repeat(tabSize + pos.character) + `${child}\n` + tab.repeat(pos.character) + "}");
         return fix
