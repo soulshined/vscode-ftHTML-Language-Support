@@ -1,5 +1,12 @@
 # Change Log
 
+## [v3.0.2]
+
+- Added a global setting for defining your preferred shell to use for converting files by calling the
+node execuatable. For macs this defaults to '/usr/local/bin', for windows it uses the default process
+
+- Fixed a syntax highlighting issue for unintentionally reporting child elements as errors
+
 ## [v3.0.0]
 
 - Support for ftHTML 3.0.0
