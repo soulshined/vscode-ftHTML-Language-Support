@@ -1,9 +1,10 @@
-.vscode/**
-.vscode-test/**
-out/test/**
-out/**/*.map
-src/**
-.gitignore
-tsconfig.json
 .dev/
 .github/
+.vscode/**
+**/*.ts
+**/*.map
+.gitignore
+**/tsconfig.json
+**/tsconfig.base.json
+contributing.md
+.travis.yml

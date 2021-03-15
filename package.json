@@ -2,7 +2,7 @@
     "name": "fthtml-language-support",
     "displayName": "ftHTML Language Support",
     "description": "Support for fthtml preprocessor language, including automatic file detection, syntax highlighting, basic formatting, snippets and more",
-    "version": "3.0.2",
+    "version": "4.0.1",
     "publisher": "davidfreer",
     "bugs": {
         "url": "https://github.com/soulshined/vscode-ftHTML-Language-Support/issues"
@@ -30,19 +30,34 @@
     "activationEvents": [
         "onLanguage:fthtml"
     ],
-    "main": "./out/extension",
+    "main": "./client/out/extension",
     "contributes": {
+        "commands" : [
+            {
+                "category": "ftHTML",
+                "title": "Convert HTML on Paste",
+                "command": "fthtml.convert-html-on-paste"
+            }
+        ],
+        "keybindings": [
+            {
+                "command": "fthtml.convert-html-on-paste",
+                "key": "ctrl+v",
+                "mac": "Cmd+v",
+                "when": "editorTextFocus && editorLangId == 'fthtml'"
+            }
+        ],
         "jsonValidation": [
             {
                 "fileMatch": "fthtmlconfig.json",
-                "url": "./syntaxes/fthtml.schema.json"
+                "url": "./client/src/syntaxes/fthtmlconfig.schema.json"
             }
         ],
         "iconThemes": [
             {
                 "id": "fthtml",
                 "label": "Seti (Visual Studio Code & ftHTML)",
-                "path": "./themes/fthtml.vs-seti-icon-theme.json"
+                "path": "./client/src/themes/fthtml.vs-seti-icon-theme.json"
             }
         ],
         "languages": [
@@ -56,14 +71,14 @@
                     ".fthtml",
                     ".ftHTML"
                 ],
-                "configuration": "./language-configuration.json"
+                "configuration": "./client/src/language-configuration.json"
             }
         ],
         "grammars": [
             {
                 "language": "fthtml",
                 "scopeName": "source.fthtml",
-                "path": "./syntaxes/fthtml.tmLanguage.json",
+                "path": "./client/src/syntaxes/fthtml.tmLanguage.json",
                 "embeddedLanguages": {
                     "meta.embedded.block.css": "css",
                     "meta.embedded.block.js": "javascript"
@@ -74,47 +89,254 @@
             {
                 "language": "fthtml",
                 "scopeName": "source.fthtml",
-                "path": "./snippets/fthtml.json"
+                "path": "./client/src/snippets/fthtml.json"
             }
         ],
         "configurationDefaults": {
             "[fthtml]": {
-                "editor.formatOnType": true,
                 "editor.autoClosingBrackets": "languageDefined"
             }
         },
         "configuration": {
+            "type": "object",
             "title": "ftHTML",
             "properties": {
-                "fthtml.format.braces.newLinesOnEnter": {
+                "fthtml.trace.server": {
+                    "scope": "window",
+                    "type": "string",
+                    "enum": [
+                        "off",
+                        "messages",
+                        "verbose"
+                    ],
+                    "default": "off",
+                    "description": "Traces the communication between VS Code and the language server."
+                },
+                "fthtml.format.enabled": {
                     "type": "boolean",
                     "default": true,
-                    "description": "Specify if you want your braces to go to a new line after pressing 'Enter' directly after curly braces auto-completion (à la C#)"
+                    "description": "Enables ftHTML formatting. See all `fthtml.format.*` configurations for customization"
                 },
-                "fthtml.format.braces.newLinesOnEnterAfterEmbeddedLanguage": {
-                    "type": "boolean",
-                    "default": false,
-                    "description": "Specify if you want your braces to go to a new line after pressing 'Enter' directly after curly braces auto-completion when the ftHTML element is an embedded language (js, css)"
+                "fthtml.format.onPasteHTML.quotationMark": {
+                    "enum": ["'", "\""],
+                    "default": "'",
+                    "description": "When pasting HTML into an ftHTML file, this defines which preference of string delimiters you prefer for the converted values"
                 },
-                "fthtml.format.braces.newLinesOnEnterAfterAttributes": {
-                    "type": "boolean",
-                    "default": false,
-                    "description": "Specify if you want your braces to go to a new line after pressing 'Enter' directly after curly braces auto-complemention when the ftHTML element has an attributes group (à la C#)"
-                },
-                "fthtml.validateOnSave": {
+                "fthtml.format.collapseSingleChildElements": {
                     "type": "boolean",
                     "default": true,
-                    "description": "This will validate the syntax everytime you save an ftHTML file (stops validating at first found error: displays in 'Problems Panel'). This has less specifity compared to exportOnSave"
+                    "description": "This collapses elements with only 1 child into a single line"
                 },
-                "fthtml.exportOnSave": {
+                "fthtml.format.collapseSingleChildElementsIfLineLengthLessThan": {
+                    "type": "integer",
+                    "default": 80,
+                    "minimum": 25,
+                    "description": "This restricts which elements get collapsed. If they are less than the provided value they will collapse, otherwise they will be formatted per normal"
+                },
+                "fthtml.format.skipTagNamesForCollapsing": {
+                    "type": "array",
+                    "default": ["pre", "code"],
+                    "description": "The tags defined here will not be collapsed regardless of any other collapsing configuration"
+                },
+                "fthtml.format.braces.newLineAfterElement": {
                     "type": "boolean",
                     "default": true,
-                    "description": "This will export the project according to your fthtmlconfig.json rules. fthtmlconfig.json must be a vaild file and located in your workspaces root path. Any issues will be reported in the 'Output' panel"
+                    "description": "Specify if you want your braces to go to a new line after pressing 'Enter' directly after curly braces auto-completion (à la C#). This will also add one when formatting is enabled"
                 },
-                "fthtml.clearOutputOnSave": {
+                "fthtml.format.braces.newLineAfterEmbeddedLangs": {
                     "type": "boolean",
                     "default": false,
-                    "description": "The 'Output' panel will be cleared every time an ftHTML file is saved and the 'exportOnSave' property is enabled"
+                    "description": "Specify if you want your braces to go to a new line after pressing 'Enter' directly after curly braces auto-completion when the ftHTML element is an embedded language (js, css). This will also add one when formatting is enabled"
+                },
+                "fthtml.format.braces.newLineAfterAttributes": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "Specify if you want your braces to go to a new line after pressing 'Enter' directly after curly braces auto-complemention when the ftHTML element has an attributes group (à la C#). This will also add one when formatting is enabled"
+                },
+                "fthtml.format.braces.newLineAfterImport": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "Specify if you want your braces to go to a new line after pressing 'Enter' directly after curly braces auto-complemention when the ftHTML element has an import. This will also add one when formatting is enabled"
+                },
+                "fthtml.format.braces.newLineAfterVariableOrPropertyBinding": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "This adds a new line to any variable or property binding value being defined that uses ftHTML Blocks"
+                },
+                "fthtml.format.braces.addIdentifierCommentAfterClosingBrace": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "Automatically add identifier comments after each closing brace '}'. This will be dynamically generated and will try to be as specific as possible (with css specificity, so id will be used first if one is listed, then classes etc). This does not update once generated"
+                },
+                "fthtml.format.braces.minimumNumberOfLinesToAddIdentifierComment" : {
+                    "type": "integer",
+                    "default": 16,
+                    "minimum": 1,
+                    "description": "Define which elements need an identifier by targeting elements with a certain length of lines"
+                },
+                "fthtml.format.braces.skipTagNamesForCommentAfterClosingBrace": {
+                    "type": "array",
+                    "description": "A list of tag names that will not generate an identifier comment regardless of other settings. By default, these are most of all the inline elements",
+                    "default": [
+                        "span",
+                        "li",
+                        "a",
+                        "abbr",
+                        "acronym",
+                        "audio",
+                        "b",
+                        "bdi",
+                        "bdo",
+                        "big",
+                        "br",
+                        "button",
+                        "canvas",
+                        "cite",
+                        "code",
+                        "data",
+                        "datalist",
+                        "del",
+                        "dfn",
+                        "em",
+                        "embed",
+                        "i",
+                        "iframe",
+                        "img",
+                        "input",
+                        "ins",
+                        "kbd",
+                        "label",
+                        "map",
+                        "mark",
+                        "meter",
+                        "noscript",
+                        "object",
+                        "output",
+                        "picture",
+                        "progress",
+                        "q",
+                        "ruby",
+                        "s",
+                        "samp",
+                        "script",
+                        "select",
+                        "slot",
+                        "small",
+                        "span",
+                        "strong",
+                        "sub",
+                        "sup",
+                        "svg",
+                        "template",
+                        "textarea",
+                        "time",
+                        "u",
+                        "tr",
+                        "td",
+                        "tt",
+                        "var",
+                        "video",
+                        "wbr"
+                    ]
+                },
+                "fthtml.format.attributes.addSpaceBeforeAttributeParenthesis": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "Add a space between a tag name and its attributes"
+                },
+                "fthtml.format.attributes.padAttributesWithSpace": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "Add a space before the first attribute and after the last attribute"
+                },
+                "fthtml.format.attributes.order": {
+                    "enum": ["id, class, kvp, misc", "id, class, misc, kvp"],
+                    "default": "id, class, kvp, misc",
+                    "description": "This defines the way attributes are formatted and arranged. By default it will format and re-arrange attributes to be id first, then classes, then key-value-pairs and then remaining attributes."
+                },
+                "fthtml.format.attributes.sorted": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "Sort the attributes alphabetically. This sorts based on the order"
+                },
+                "fthtml.format.attributes.wrapOrderedAttributes": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "Automatically wrap attribute order groups onto their own line. For example, id will be on the top, a new line with classes etc."
+                },
+                "fthtml.format.attributes.minimumNumberOfAttributesForWrapping": {
+                    "type": "integer",
+                    "default": 6,
+                    "minimum": 0,
+                    "description": "Define the minimum number of attribute sets before starting to wrap the groups on their own lines"
+                },
+                "fthtml.format.newLineBeforeComments": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "Force a newline before orphan comments"
+                },
+                "fthtml.format.newLineAfterLastChildElement": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "Force a new line to appear after any last child element"
+                },
+                "fthtml.format.newLineBeforeFirstChildElement": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "Force a new line to appear before any first child element"
+                },
+                "fthtml.format.newLineBeforeAfterChildElementMinimumDepth": {
+                    "type": "integer",
+                    "default": 1,
+                    "minimum": 0,
+                    "description": "Define the minimum child depth of an element before forcing a new line before or after a child element"
+                },
+                "fthtml.format.newLineBeforeAfterChildElementMaximumDepth": {
+                    "type": "integer",
+                    "default": 1,
+                    "minimum": 0,
+                    "description": "Define the maximum child depth of an element before forcing a new line before or after a child element"
+                },
+                "fthtml.format.alignVariableOrPropertyBindingValues": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "Force values of property binding or variable declarations to be on the same column"
+                },
+                "fthtml.includeTagNamesInSymbols": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "Identifies if simple tag names should be included in symbol queries"
+                },
+                "fthtml.validation.enabled": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "This will validate the syntax everytime you make changes or save an ftHTML file or open a new file (stops validating at first found error: displays in 'Problems Panel')"
+                },
+                "fthtml.documentLinking.enabled" : {
+                    "type" : "boolean",
+                    "default": true,
+                    "description": "This enables document linking (ALT+click link following) for imports with native support of relative, fthtmlconfig importDir or by reference importing. This does not impact peeks or go to definition implementation and those features can still be used freely"
+                },
+                "fthtml.export.onSave": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "This will export the project according to your fthtmlconfig.json rules or otherwise. Any issues will be reported in the 'Output' panel or the problems panel"
+                },
+                "fthtml.export.onErrorOutputMode": {
+                    "enum": ["prompt", "show", "problem-panel", "none"],
+                    "default": "prompt",
+                    "description": "Define which mode notifications will be presented to you on found issues when exporting",
+                    "enumDescriptions": [
+                        "Show a UI notification and ask to 'View' the results",
+                        "Always show the output",
+                        "Report any issues in the problems panel"
+                    ]
+
+                },
+                "fthtml.export.clearOutput" : {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "Clear output before each time an export is started"
                 },
                 "fthtml.shell": {
                     "type": "string",
@@ -130,19 +352,17 @@
     "icon": "images/icon.png",
     "scripts": {
         "vscode:prepublish": "npm run compile",
-        "compile": "tsc -p ./",
-        "watch": "tsc -watch -p ./",
+        "compile": "tsc -b",
+        "watch": "tsc -b -w",
+        "postinstall": "cd client && npm install && cd ../server && npm install && cd ..",
         "test": "npm run compile && node ./node_modules/vscode/bin/test"
     },
     "devDependencies": {
         "@types/mocha": "^7.0.2",
         "@types/node": "^8.10.61",
         "@types/vscode": "^1.45.1",
+        "vscode-test": "^1.4.0",
         "mocha": "^7.2.0",
-        "typescript": "^3.0.0",
-        "vscode-test": "^1.4.0"
-    },
-    "dependencies": {
-        "fthtml": "^3.0.0"
+        "typescript": "^4.2.2"
     }
 }

@@ -1,0 +1,24 @@
+{
+    "name": "fthtml-language-support-lsp-client",
+    "description": "",
+    "version": "1.0.0",
+    "publisher": "davidfreer",
+    "author": "David Freer",
+    "license": "MIT",
+    "engines": {
+        "vscode": "^1.45.1"
+    },
+    "homepage": "https://github.com/soulshined/vscode-ftHTML-Language-Support",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/soulshined/vscode-ftHTML-Language-Support"
+    },
+    "dependencies": {
+        "vscode-languageclient": "^7.0.0",
+        "fthtml": "^3.0.0"
+    },
+    "devDependencies": {
+        "@types/vscode": "^1.45.1",
+        "vscode-test": "^1.4.0"
+    }
+}
