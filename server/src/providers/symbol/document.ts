@@ -14,7 +14,7 @@ export default function FTHTMLDocumentSymbolProviderHandler(params: DocumentSymb
 
         StackTrace.clear();
 
-        return _getSymbols(new FTHTMLLSParser().renderFile(filename), context.settings.includeTagNamesInSymbols);
+        return _getSymbols(new FTHTMLLSParser(context.config).renderFile(filename), context.settings.includeTagNamesInSymbols);
     } catch (error) {
         console.log("Error rendering file for document symbols");
         return [];

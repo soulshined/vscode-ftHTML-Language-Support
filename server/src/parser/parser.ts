@@ -8,6 +8,8 @@ import {
     ftHTMLIncompleteElementError,
     ftHTMLInvalidElementNameError,
     ftHTMLInvalidKeywordError,
+    ftHTMLInvalidTinyTemplateNameError,
+    ftHTMLInvalidTinyTemplatePlaceholderError,
     ftHTMLInvalidTypeError,
     ftHTMLInvalidVariableNameError,
     ftHTMLNotEnoughArgumentsError,
@@ -16,9 +18,12 @@ import {
 import * as _ from "fthtml/lib/utils/functions";
 import StackTrace from "./stacktrace";
 import { SELF_CLOSING_TAGS } from "fthtml/lib/utils/self-closing-tags";
+import { TinyTemplate } from "fthtml/lib/parser/models";
 import { TokenStream, TOKEN_TYPE as TT, Tokenable, token } from './token';
 import { ftHTMLLSLexer } from './lexer';
 import { ftHTMLElement, TConstant, TFunction, TMethod, Token, TProperty, TString, TVariable } from './model';
+import { FTHTMLConfigs } from '../config/settings';
+import { SymbolKind } from 'vscode-languageserver-types';
 
 
 function ParserVariables(vars) {
@@ -39,12 +44,15 @@ function ParserVariables(vars) {
 export class FTHTMLLSParser {
     private input: TokenStream;
     private vars;
-    constructor(vars?) {
+    private tinytemplates = {};
+    private config;
+    constructor(config: FTHTMLConfigs, vars?) {
+        this.config = config;
         this.vars = ParserVariables(vars);
     }
 
     compile(src: string) {
-        return new FTHTMLLSParser().parse(ftHTMLLSLexer.TokenStream(InputStream(src)));
+        return new FTHTMLLSParser(this.config).parse(ftHTMLLSLexer.TokenStream(InputStream(src)));
     }
 
     renderFile(file: string) {
@@ -69,6 +77,12 @@ export class FTHTMLLSParser {
         } catch (error) {
             throw error;
         }
+    }
+
+    private compileTinyTemplate(src: string) {
+        const parser = new FTHTMLLSParser(this.config);
+        parser.parse(ftHTMLLSLexer.TokenStream(InputStream(src)));
+        return parser.tinytemplates;
     }
 
     private parse(input: TokenStream): ftHTMLElement[] {
@@ -104,7 +118,9 @@ export class FTHTMLLSParser {
             // @ts-ignore
             if (!types.includes(t.type)) throw new ftHTMLInvalidTypeError(t, '');
 
-            if (t.type == TT.WORD) tokens.push(...this.parseTag());
+            if (this.isExpectedType(t, TT.WORD) && (this.tinytemplates[t.value] !== undefined || (this.config && this.config.tinytemplates[t.value] !== undefined)))
+                tokens.push(...this.parseTinyTemplate());
+            else if (t.type == TT.WORD) tokens.push(...this.parseTag());
             else if (t.type == TT.STRING) tokens.push(TString(this.consume()))
             else if (t.type == TT.VARIABLE) tokens.push(TVariable(this.consume()));
             else if (t.type == TT.ELANG) tokens.push(this.parseElang());
@@ -269,6 +285,90 @@ export class FTHTMLLSParser {
 
             // @ts-ignore
             throw new ftHTMLIncompleteElementError(pragma, `Expecting '#end' pragma keyword for starting pragma '${pragma.value}' but none found`, pragma);
+        }
+        else if (pragma.value.endsWith('templates')) {
+            do {
+                const tinytempl = this.consume();
+                if (this.isExpectedType(tinytempl, 'Pragma_end')) return token;
+                if (tinytempl.type !== TT.WORD)
+                    // @ts-ignore
+                    throw new ftHTMLInvalidTinyTemplateNameError(tinytempl, "[\w-]+", this.vars._$.__filename);
+
+                if (this.isEOF())
+                    // @ts-ignore
+                    throw new ftHTMLIncompleteElementError(tinytempl, 'a string or single ftHTML element');
+
+                const element = this.consume();
+                if (!this.isOneOfExpectedTypes(element, [TT.WORD, TT.STRING]))
+                    // @ts-ignore
+                    throw new ftHTMLInvalidTypeError(element, 'a string or single ftHTML element');
+
+                if (this.isExpectedType(element, TT.STRING)) {
+                    // @ts-ignore
+                    this.tinytemplates[tinytempl.value] = TinyTemplate(element, this.vars._$.__filename);
+                    token.children.push(Token(tinytempl, [TString(element)]));
+                    continue;
+                }
+
+                if (this.isEOF())
+                    // @ts-ignore
+                    throw new ftHTMLIncompleteElementError(pragma, `an '#end' pragma keyword for starting pragma '${pragma.value}' but none found`);
+
+                const peek = this.peek();
+                if (this.isExpectedType(peek, 'Pragma_end')) {
+                    this.tinytemplates[tinytempl.value] = TinyTemplate({
+                        // @ts-ignore
+                        type: TT.STRING,
+                        value: '${val}',
+                        position: element.position
+                    }, this.vars._$.__filename, element);
+                    token.children.push(Token(tinytempl, [Token(element)]));
+                    continue;
+                }
+
+                if (this.isExpectedType(peek, TT.STRING)) {
+                    // @ts-ignore
+                    this.tinytemplates[tinytempl.value] = TinyTemplate(this.consume(), this.vars._$.__filename, element);
+                    token.children.push(Token(tinytempl, [Token(element, [TString(this.consume())])]));
+                }
+                else if (this.isExpectedType(peek, 'Symbol_(')) {
+                    this.consume();
+                    if (this.isEOF())
+                        // @ts-ignore
+                        throw new ftHTMLIncompleteElementError(element, 'closing and opening parenthesis');
+
+                    const attrs = this.parseAttributes();
+
+                    let value;
+                    if (this.isExpectedType(this.peek(), TT.STRING)) {
+                        const val = this.consume();
+                        value = val.value;
+                        token.children.push(Token(tinytempl, [Token(element, [TString(val)], attrs)]));
+                    }
+                    else if (!this.isExpectedType(this.peek(), TT.WORD) && !this.isExpectedType(this.peek(), 'Pragma_end'))
+                        // @ts-ignore
+                        throw new ftHTMLInvalidTypeError(element, 'a string or single ftHTML element');
+
+                    this.tinytemplates[tinytempl.value] = TinyTemplate(value ?? {
+                        type: TT.STRING,
+                        value: '${val}',
+                        position: element.position
+                        // @ts-ignore
+                    }, this.vars._$.__filename, element, attrs);
+                    token.children.push(Token(tinytempl, [Token(element, [], attrs)]));
+                }
+                else if (this.isExpectedType(peek, TT.WORD)) {
+                    // @ts-ignore
+                    this.tinytemplates[tinytempl.value] = TinyTemplate(element, this.vars._$.__filename);
+                    token.children.push(Token(tinytempl, [Token(this.consume())]));
+                }
+                else
+                    // @ts-ignore
+                    throw new ftHTMLInvalidTypeError(element, 'a string or single ftHTML element');
+            } while (!this.isEOF());
+
+            // @ts-ignore
+            throw new ftHTMLIncompleteElementError(pragma, `an '#end' pragma keyword for starting pragma '${pragma.value}' but none found`);
         }
         // @ts-ignore
         else throw new ftHTMLInvalidKeywordError(pragma);
@@ -485,11 +585,56 @@ export class FTHTMLLSParser {
         return token.value;
     }
 
-    private initElementWithAttrs(token: token): ftHTMLElement[] {
-        const t = this.consume();
-        // @ts-ignore
-        if (this.input.eof()) throw new ftHTMLIncompleteElementError(t, 'opening and closing braces');
+    private parseTinyTemplate() : ftHTMLElement[] {
+        const token = TVariable(this.consume())
+        const uconfigtt = this.config?.tinytemplates[token.token.value];
+        const tt = this.tinytemplates[token.token.value] || uconfigtt;
 
+        let { element, attrs, value } = tt;
+
+        if (uconfigtt !== undefined) {
+            try {
+                const tts = this.compileTinyTemplate(`#templates ${token.token.value} ${value.value} #end`);
+
+                value = tts[token.token.value].value;
+                element = tts[token.token.value].element;
+                attrs = tts[token.token.value].attrs;
+            }
+            catch (error) { }
+        }
+
+        let result = value.value;
+        const placeholders = _.getAllMatches(result, /(?<!\\)(\${[ ]*val[ ]*})/g);
+        if (placeholders.length === 0)
+            // @ts-ignore
+            throw new ftHTMLInvalidTinyTemplatePlaceholderError(token.token, this.vars._$.__filename);
+
+        if (this.isExpectedType(this.peek(), 'Symbol_{')) {
+            const props = this.parseBindingPropertyValueAsFTHTML();
+            const brace = props.shift();
+            const endBrace = props.pop();
+            token.children.push(...props);
+            token.isParentWithftHTMLBlockBody = true;
+            token.symbolKind = SymbolKind.Variable;
+            return [token, brace, endBrace];
+        }
+        else if (this.peek().type == TT.STRING) {
+            token.children.push(TString(this.consume()));
+        }
+        else if (this.isExpectedType(this.peek(), TT.FUNCTION))
+            token.children.push(this.parseFunction());
+        else if (this.isExpectedType(this.peek(), TT.MACRO)) {
+            token.children.push(TConstant(this.peek()));
+            this.parseMacro();
+        }
+        else if (this.isExpectedType(this.peek(), TT.VARIABLE)) {
+            token.children.push(...this.parseWhileType([TT.VARIABLE], null, null, 1));
+        }
+
+        return [token];
+    }
+
+    private parseAttributes() {
         const attrs: Map<String, Set<String>> = new Map;
         attrs.set('classes', new Set);
         attrs.set('misc', new Set);
@@ -499,35 +644,8 @@ export class FTHTMLLSParser {
         do {
             const t = this.consume();
             let peek = this.peek();
-            const _token = Token(token, [], attrs);
 
-            if (t.type == TT.SYMBOL && t.value == ')') {
-                if (SELF_CLOSING_TAGS.includes(token.value)) return [_token];
-                if (this.isExpectedType(peek, 'Symbol_{')) {
-                    const children = this.initElementWithChildren(token, attrs);
-                    const brace = children.children.shift();
-                    const endBrace = children.children.pop();
-                    return [children, brace, endBrace];
-                }
-                else if (this.isExpectedType(peek, TT.STRING)) {
-                    _token.children = [TString(this.consume())]
-                    return [_token];
-                }
-                else if (this.isExpectedType(peek, TT.VARIABLE)) {
-                    _token.children = [TVariable(this.consume())]
-                    return [_token];
-                }
-                else if (this.isExpectedType(peek, TT.FUNCTION)) {
-                    _token.children = [this.parseFunction()]
-                    return [_token];
-                }
-                else if (this.isExpectedType(peek, TT.MACRO)) {
-                    this.parseMacro();
-                    _token.children = [TConstant(peek)];
-                    return [_token];
-                }
-                else return [_token];
-            }
+            if (t.type == TT.SYMBOL && t.value == ')') return attrs;
 
             // @ts-ignore
             if (![TT.WORD, TT.ATTR_CLASS, TT.ATTR_CLASS_VAR, TT.ATTR_ID, TT.VARIABLE].includes(t.type)) throw new ftHTMLInvalidTypeError(t, 'an attribute selector, identifier or word');
@@ -558,6 +676,45 @@ export class FTHTMLLSParser {
 
         // @ts-ignore
         throw new ftHTMLIncompleteElementError(t, 'opening and closing braces');
+    }
+
+    private initElementWithAttrs(token: token): ftHTMLElement[] {
+        const t = this.consume();
+        // @ts-ignore
+        if (this.input.eof()) throw new ftHTMLIncompleteElementError(t, 'opening and closing braces');
+
+        const attrs = this.parseAttributes();
+        const _token = Token(token, [], attrs);
+
+        if (this.isEOF() || SELF_CLOSING_TAGS.includes(token.value))
+            return [_token];
+
+        const peek = this.peek();
+        if (this.isExpectedType(peek, 'Symbol_{')) {
+            const children = this.initElementWithChildren(token, attrs);
+            const brace = children.children.shift();
+            const endBrace = children.children.pop();
+            return [children, brace, endBrace];
+        }
+        else if (this.isExpectedType(peek, TT.STRING)) {
+            _token.children = [TString(this.consume())]
+            return [_token];
+        }
+        else if (this.isExpectedType(peek, TT.VARIABLE)) {
+            _token.children = [TVariable(this.consume())]
+            return [_token];
+        }
+        else if (this.isExpectedType(peek, TT.FUNCTION)) {
+            _token.children = [this.parseFunction()]
+            return [_token];
+        }
+        else if (this.isExpectedType(peek, TT.MACRO)) {
+            this.parseMacro();
+            _token.children = [TConstant(peek)];
+            return [_token];
+        }
+        else return [_token];
+
     }
 
     private initElementWithChildren(token: token, attrs?: Map<String, Set<String>>): ftHTMLElement {

@@ -6,7 +6,8 @@ export interface FTHTMLConfigs {
     json: {
         importDir: string,
         jsonDir: string,
-        globalvars: { [key: string]: string }
+        globalvars: { [key: string]: string },
+        globalTinyTemplates: { [key: string]: string }
     }
 }
 

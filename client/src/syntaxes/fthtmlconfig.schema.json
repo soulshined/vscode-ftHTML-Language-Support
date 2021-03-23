@@ -11,8 +11,16 @@
     }
   },
   "properties": {
+    "extend" : {
+      "description": "Extend other local fthtmlconfig files. Properties cascade, and can be overwritten at runtime or in other fthtmlconfig descendant files. Supported properties that extend are importDir, jsonDir, exportDir, globalvars, globalTinyTemplates, excluded",
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "$ref": "#/definitions/string_nonempty"
+      }
+    },
     "excluded": {
-      "description": "These are relative to the rootDir property. If the rootDir property is omitted, the workspace root path will be used. If no directories are exlcuded, the compiler will search for all ftHTML files in the directory to be coverted. By default, \"tests\" and \"node_modules\" directories are excluded.",
+      "description": "These are relative to the rootDir property. If the rootDir property is omitted, the workspace root path will be used. If no directories are exlcuded, the compiler will search for all ftHTML files in the directory to be coverted. By default, \"tests\" and \"node_modules\" directories are excluded. This property can be extended",
       "type": "array",
       "uniqueItems": true,
       "default": [
@@ -28,7 +36,7 @@
           "$ref": "#/definitions/string_nonempty"
         },
         {
-          "description": "Default import directory for import statements. When this is set you will not have to type the directory to the import statements, just the filepath relative to the importDir. This is not relative to the rootDir property, it should be assumed this is relative to the workspace root path.",
+          "description": "Default import directory for import statements. When this is set you will not have to type the directory to the import statements, just the filepath relative to the importDir. This is not relative to the rootDir property, it should be assumed this is relative to the workspace root path. This property can be extended",
           "default": "./.fthtml/imports",
           "examples": [
             "root/.fthtml/imports"
@@ -42,7 +50,7 @@
           "$ref": "#/definitions/string_nonempty"
         },
         {
-          "description": "Default json file directory for json binding. When this is set you will not have to type the directory to the json statements, just the filepath relative to the jsonDir. This is not relative to the rootDir property, it should be assumed this is relative to the workspace root path.",
+          "description": "Default json file directory for json binding. When this is set you will not have to type the directory to the json statements, just the filepath relative to the jsonDir. This is not relative to the rootDir property, it should be assumed this is relative to the workspace root path. This property can be extended",
           "default": "./.fthtml/json",
           "examples": [
             "root/.fthtml/json"
@@ -56,7 +64,7 @@
           "$ref": "#/definitions/string_nonempty"
         },
         {
-          "description": "Sets the default directory of where you want converted files to save to. This is not relative to the rootDir property, it should be assumed this is relative to the workspace root path.",
+          "description": "Sets the default directory of where you want converted files to save to. This is not relative to the rootDir property, it should be assumed this is relative to the workspace root path. This property can be extended",
           "default": "./www",
           "examples": [
             "root/www/"
@@ -70,7 +78,7 @@
           "$ref": "#/definitions/string_nonempty"
         },
         {
-          "description": "When this is set the compilier will consider this the root folder for ftHTML files and only look here when converting. Assume this directory is relative to the workspace root path",
+          "description": "When this is set the compilier will consider this the root folder for ftHTML files and only look here when converting. Assume this directory is relative to the workspace root path. This property can be extended",
           "default": "./.fthtml",
           "examples": [
             "root/.fthtml"
@@ -97,7 +105,25 @@
       ]
     },
     "globalvars": {
-      "description": "This allows you to quickly call and reference variables in any of your .fthtml files without the need to declare or assign them in that respective file. The naming conventions follow regular variable naming conventions and can not be reserved words.",
+      "description": "This allows you to quickly call and reference variables in any of your .fthtml files without the need to declare or assign them in that respective file. The naming conventions follow regular variable naming conventions and can not be reserved words. This property can be extended",
+      "type": "object",
+      "patternProperties": {
+        "^[\\w-]+$": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    },
+    "globalTinyTemplates" : {
+      "description": "This allows you to quickly call and reference custom element names that are aliases to a specific markup. The naming conventions follow regular variable naming convertions. This property can be extended. This property supports ftHTML syntax for values",
+      "examples": [
+        {
+          "shell" : "code(.code-inline data-lang=shell)"
+        },
+        {
+          "hyperlink" : "<a href=\"${val}\" target=\"_blank\">${val}</a>"
+        }
+      ],
       "type": "object",
       "patternProperties": {
         "^[\\w-]+$": {

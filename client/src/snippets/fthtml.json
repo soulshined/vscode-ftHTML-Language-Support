@@ -9,6 +9,16 @@
     ],
     "description": "Vars Pragma for defining variables"
   },
+  "Pragma - TinyTemplates" : {
+    "prefix": "tinytemplates",
+    "body" : [
+      "#tinytemplates",
+      "\t${1:tinyTemplateName} \"${2:value} \\${val}\"$3",
+      "#end",
+      "$0"
+    ],
+    "description": "Tiny Templates Pragma for defining tiny templates"
+  },
   "HTML template": {
     "prefix": "html",
     "body": [

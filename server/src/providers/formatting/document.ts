@@ -142,11 +142,11 @@ export class FTHTMLDocumentFormatProvider {
         return functions['addslashes'].do(val).value;
     }
 
-    public async format(): Promise<TextEdit[]> {
+    public async format(context: IBaseContext): Promise<TextEdit[]> {
         try {
             StackTrace.clear();
 
-            const ftHTML = new FTHTMLLSParser().compile(this.document.getText());
+            const ftHTML = new FTHTMLLSParser(context.config).compile(this.document.getText());
             let formatted = this.prettify(ftHTML).trim();
 
             if (this.formattingOptions.insertFinalNewline)
@@ -379,6 +379,11 @@ export class FTHTMLDocumentFormatProvider {
                     const child = element.children[0];
                     if (this.isOfType([TT.FUNCTION], child))
                         text += ` ${valueSpacing}${child.token.value}(${child.children.map(arg => arg.token.value).join(" ")})`;
+                    else if (braces && braces.mode === 'templates') {
+                        text += ` ${valueSpacing}${child.token.value}${this.formatAttributes(child, spacing)}`;
+                        if (child.children.length > 0)
+                            text += this.prettify(child.children, indent);
+                    }
                     else
                         text += ` ${valueSpacing}${child.token.value}`;
                 }
@@ -440,10 +445,10 @@ export class FTHTMLDocumentFormatProvider {
             }
             else if (this.isOfType([TT.PRAGMA], element)) {
                 text += repeat('\n', clamp(newlines, 1, 2));
-                text += `${spacing}#vars`;
+                text += `${spacing}#${element.token.value}`;
                 this.last_element = element
                 const _braces = {
-                    mode: 'vars',
+                    mode: element.token.value,
                     indent_level: indent + 1
                 };
                 text += this.prettify(element.children, indent + 1, _braces);

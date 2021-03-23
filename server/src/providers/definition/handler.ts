@@ -10,7 +10,7 @@ export default async function FTHTMLDefinitionProviderHandler(params: Definition
 
     const text = context.document.getText(context.document.lineAt(params.position.line).range);
     const importMatch = text.match(/import\s+(['"])([^\1]*)\1(\s+\{)?/);
-    const varRange = getWordRangeAtPosition(context.document.lines, params.position, /(^|[\s\(\{\.])@[\w-]+([\s\)\}]|$)/);
+    const varRange = getWordRangeAtPosition(context.document.lines, params.position, /(^|[\s\(\{\.])@?[\w-]+([\s\)\}]|$)/);
 
     if (importMatch) return [await _getImportDefinitions(importMatch, context)];
     else if (varRange) return await _getVariableDefinitions(varRange, context);
@@ -40,39 +40,50 @@ async function _getImportDefinitions(match, { document, workspace, config }: ISc
 }
 
 async function _getVariableDefinitions(range: Range, { document, config }: IScopeContext): Promise<Location[]> {
-    const varName = document.getText(range).trim().substring(1);
+    let mode = 'templates';
+    const fullWord = document.getText(range).trim();
+    let word = fullWord;
+    if (word.startsWith('@')) {
+        mode = 'vars';
+        word = word.substring(1);
+    }
 
     let locations: Location[] = [];
     if (config) {
         const fthtmlconfigLines = config.content.split("\n");
 
-        if (config.json.globalvars && config.json.globalvars[varName]) {
-            const indx = config.content.indexOf(`"${varName}"`);
+        if (config.json.globalvars && config.json.globalvars[word] ||
+            config.json.globalTinyTemplates && config.json.globalTinyTemplates[word]) {
+            const indx = config.content.indexOf(`"${word}"`);
 
             let chars = 0;
             let line = 0;
-            while ((chars += fthtmlconfigLines[line++].length + "\n".length) <= indx + varName.length) { }
+            while ((chars += fthtmlconfigLines[line++].length + "\n".length) <= indx + word.length) { }
 
             line = Math.max(line - 1, 0);
             locations.push({
                 uri: URI.file(config.path).path,
-                range: Range.create(line, fthtmlconfigLines[line].indexOf(varName), line, fthtmlconfigLines[line].indexOf(varName) + varName.length)
+                range: Range.create(line, fthtmlconfigLines[line].indexOf(word), line, fthtmlconfigLines[line].indexOf(word) + word.length)
             })
         }
     }
 
-    const regexp = new RegExp("#vars(.*?)#end", 'gms');
+    let regexp = new RegExp('#((?:tiny)?templates)(.*?)#end', 'gms');
+    if (mode === 'vars')
+        regexp = new RegExp("(#vars)(.*?)#end", 'gms');
     const matches = getAllMatches(document.getText(), regexp);
 
     for (const match of matches) {
-        const thisregexp = new RegExp("(^\\s*)" + varName, 'gm');
+        const { index: pragmastart } = match;
+        const [ all, pragmaName ] = match;
+        const thisregexp = new RegExp("\\b" + word + "(\\s|$)", 'gm');
 
-        const thismatches = getAllMatches(match[1], thisregexp)
+        const thismatches = getAllMatches(match[2], thisregexp)
         for (const thismatch of thismatches) {
+            const pos = pragmastart + pragmaName.length + thismatch.index + +!!!fullWord.startsWith(('@'));
             locations.push({
                 uri: URI.parse(document.uri).path,
-                range: Range.create(document.positionAt(match.index + thismatch.index + 5 + thismatch[1].length),
-                    document.positionAt(match.index + thismatch.index + 5 + thismatch[1].length + varName.length))
+                range: Range.create(document.positionAt(pos), document.positionAt(pos + word.length))
             });
         }
 

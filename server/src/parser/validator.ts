@@ -1,4 +1,4 @@
-import { ftHTMLexerError, ftHTMLImportError, ftHTMLParserError } from "fthtml/lib/utils/exceptions";
+import { ftHTMLexerError, ftHTMLParserError } from "fthtml/lib/utils/exceptions";
 import { Diagnostic, DiagnosticSeverity, Range, _Connection } from "vscode-languageserver";
 import { IBaseContext } from "../common/context";
 import { FTHTMLLSParser } from "./parser";
@@ -11,7 +11,7 @@ export default class FTHTMLValidator {
         let diagnostics: Diagnostic[] = [];
 
         try {
-            new FTHTMLLSParser().compile(context.document.getText());
+            new FTHTMLLSParser(context.config).compile(context.document.getText());
         } catch (error) {
             if (error instanceof ftHTMLParserError ||
                 error instanceof ftHTMLexerError) {

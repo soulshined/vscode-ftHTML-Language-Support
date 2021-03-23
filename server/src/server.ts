@@ -219,7 +219,7 @@ documents.onWillSaveWaitUntil(async (params: TextDocumentWillSaveEvent<TextDocum
     }
 
     const formatter = new FTHTMLDocumentFormatProvider(formatOpts, scope);
-    return Promise.resolve(formatter.format());
+    return Promise.resolve(formatter.format(scope));
 })
 
 documents.onDidSave(async (e: TextDocumentChangeEvent<TextDocument>) => {

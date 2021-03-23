@@ -2,7 +2,7 @@
     "name": "fthtml-language-support",
     "displayName": "ftHTML Language Support",
     "description": "Support for fthtml preprocessor language, including automatic file detection, syntax highlighting, basic formatting, snippets and more",
-    "version": "4.0.1",
+    "version": "4.1.0",
     "publisher": "davidfreer",
     "bugs": {
         "url": "https://github.com/soulshined/vscode-ftHTML-Language-Support/issues"
@@ -32,7 +32,7 @@
     ],
     "main": "./client/out/extension",
     "contributes": {
-        "commands" : [
+        "commands": [
             {
                 "category": "ftHTML",
                 "title": "Convert HTML on Paste",
@@ -49,7 +49,7 @@
         ],
         "jsonValidation": [
             {
-                "fileMatch": "fthtmlconfig.json",
+                "fileMatch": "fthtmlconfig*.json",
                 "url": "./client/src/syntaxes/fthtmlconfig.schema.json"
             }
         ],
@@ -118,7 +118,10 @@
                     "description": "Enables ftHTML formatting. See all `fthtml.format.*` configurations for customization"
                 },
                 "fthtml.format.onPasteHTML.quotationMark": {
-                    "enum": ["'", "\""],
+                    "enum": [
+                        "'",
+                        "\""
+                    ],
                     "default": "'",
                     "description": "When pasting HTML into an ftHTML file, this defines which preference of string delimiters you prefer for the converted values"
                 },
@@ -135,7 +138,10 @@
                 },
                 "fthtml.format.skipTagNamesForCollapsing": {
                     "type": "array",
-                    "default": ["pre", "code"],
+                    "default": [
+                        "pre",
+                        "code"
+                    ],
                     "description": "The tags defined here will not be collapsed regardless of any other collapsing configuration"
                 },
                 "fthtml.format.braces.newLineAfterElement": {
@@ -168,7 +174,7 @@
                     "default": true,
                     "description": "Automatically add identifier comments after each closing brace '}'. This will be dynamically generated and will try to be as specific as possible (with css specificity, so id will be used first if one is listed, then classes etc). This does not update once generated"
                 },
-                "fthtml.format.braces.minimumNumberOfLinesToAddIdentifierComment" : {
+                "fthtml.format.braces.minimumNumberOfLinesToAddIdentifierComment": {
                     "type": "integer",
                     "default": 16,
                     "minimum": 1,
@@ -250,7 +256,10 @@
                     "description": "Add a space before the first attribute and after the last attribute"
                 },
                 "fthtml.format.attributes.order": {
-                    "enum": ["id, class, kvp, misc", "id, class, misc, kvp"],
+                    "enum": [
+                        "id, class, kvp, misc",
+                        "id, class, misc, kvp"
+                    ],
                     "default": "id, class, kvp, misc",
                     "description": "This defines the way attributes are formatted and arranged. By default it will format and re-arrange attributes to be id first, then classes, then key-value-pairs and then remaining attributes."
                 },
@@ -312,8 +321,8 @@
                     "default": true,
                     "description": "This will validate the syntax everytime you make changes or save an ftHTML file or open a new file (stops validating at first found error: displays in 'Problems Panel')"
                 },
-                "fthtml.documentLinking.enabled" : {
-                    "type" : "boolean",
+                "fthtml.documentLinking.enabled": {
+                    "type": "boolean",
                     "default": true,
                     "description": "This enables document linking (ALT+click link following) for imports with native support of relative, fthtmlconfig importDir or by reference importing. This does not impact peeks or go to definition implementation and those features can still be used freely"
                 },
@@ -323,7 +332,12 @@
                     "description": "This will export the project according to your fthtmlconfig.json rules or otherwise. Any issues will be reported in the 'Output' panel or the problems panel"
                 },
                 "fthtml.export.onErrorOutputMode": {
-                    "enum": ["prompt", "show", "problem-panel", "none"],
+                    "enum": [
+                        "prompt",
+                        "show",
+                        "problem-panel",
+                        "none"
+                    ],
                     "default": "prompt",
                     "description": "Define which mode notifications will be presented to you on found issues when exporting",
                     "enumDescriptions": [
@@ -331,9 +345,8 @@
                         "Always show the output",
                         "Report any issues in the problems panel"
                     ]
-
                 },
-                "fthtml.export.clearOutput" : {
+                "fthtml.export.clearOutput": {
                     "type": "boolean",
                     "default": false,
                     "description": "Clear output before each time an export is started"
@@ -364,5 +377,6 @@
         "vscode-test": "^1.4.0",
         "mocha": "^7.2.0",
         "typescript": "^4.2.2"
-    }
+    },
+    "dependencies": {}
 }

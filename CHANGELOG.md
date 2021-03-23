@@ -1,5 +1,14 @@
 # Change Log
 
+## [v4.1.0]
+
+Support for ftHTML 3.1 - the smaragdine update final features
+
+- Tiny Templates
+- Extend local ftHTMLConfig files
+
+See details on remaining changes: https://www.fthtml.com/changelog/#Smaragdine
+
 ## [v4.0.0]
 
 Complete extension overhaul that provides a proper fthtml language server in place of the inline
