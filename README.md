@@ -5,6 +5,7 @@ This extensions provides language support for [ftHTML preprocesser](https://www.
 Support includes, but not limited to:
 
 * [Icon Theme](#icon-theme)
+* [Convert HTML On Paste](#convert-html-on-paste)
 * [Formatting](#formatting)
 * [Syntax Validation](#syntax-validation)
 * [Code Actions](#code-actions)
@@ -13,7 +14,6 @@ Support includes, but not limited to:
 * [Documentation](#documentation)
 * [Symbol Support](#symbol-support)
 * [Document Linking](#document-linking)
-* [Convert HTML On Paste](#convert-html-on-paste)
 * [Exporting](#exporting)
 
 ## Icon Theme

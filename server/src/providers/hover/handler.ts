@@ -2,6 +2,7 @@ import { Hover } from "vscode-languageserver";
 import { IScopeContext } from "../../common/context";
 import functions, { fthtmlfunc } from "../../common/documentation/functions";
 import macros, { fthtmlmacro } from "../../common/documentation/macros";
+import operators from "../../common/documentation/operators";
 import { PATTERNS } from "../../common/patterns";
 import { getWordRangeAtPosition } from "../../common/utils/document";
 
@@ -15,7 +16,17 @@ export function HoverHandler({ document, position }: IScopeContext): Hover | und
     if (!wrange) {
         wrange = getWordRangeAtPosition(document.lines, position, new RegExp(PATTERNS.MACROS));
 
-        if (!wrange) return;
+        if (!wrange) {
+            wrange = getWordRangeAtPosition(document.lines, position, new RegExp(PATTERNS.OPERATORS));
+
+            if (wrange) {
+                return {
+                    contents: operators[document.getText(wrange)].documentation
+                }
+            }
+
+            return;
+        };
 
         name = document.getText(wrange);
         name = name.substring(2, name.length - 2);

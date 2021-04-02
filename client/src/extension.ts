@@ -7,6 +7,7 @@ import {
     ServerOptions,
     TransportKind
 } from 'vscode-languageclient/node';
+import { DecorationsProvider } from './providers/decorations/text-decoration';
 
 let client: LanguageClient;
 
@@ -67,9 +68,12 @@ export function activate(context: ExtensionContext) {
         });
 
         context.subscriptions.push(commands.registerCommand('fthtml.convert-html-on-paste', async () => {
-            const data = await env.clipboard.readText();
+            let data = await env.clipboard.readText();
             const editor = window.activeTextEditor;
-            if (!data || data.trim().length === 0 || !editor) return;
+            if (!data || !editor) return;
+
+            data = data.trim();
+            if (data.trim().length === 0) return;
 
             const { document, options, selection } = editor;
 
@@ -93,27 +97,27 @@ export function activate(context: ExtensionContext) {
                     indent: previousLine.firstNonWhitespaceCharacterIndex,
                     data
                 })
-                .then(async (e: { doc: TextDocument, fthtml: string }) => {
-                    if (!e['fthtml'] || e.fthtml.trim().length === 0) {
+                    .then(async (e: { doc: TextDocument, fthtml: string }) => {
+                        if (!e['fthtml'] || e.fthtml.trim().length === 0) {
+                            progress.report({ increment: 100 });
+                            await commands.executeCommand('editor.action.clipboardPasteAction')
+                            return;
+                        }
+
+                        window.showTextDocument(e.doc, ViewColumn.Active, false)
+                            .then(async editor => {
+                                editor.revealRange(new Range(selection.start, selection.start), TextEditorRevealType.InCenter);
+                                await editor.edit(eb => {
+                                    eb.insert(selection.start, e.fthtml);
+                                })
+                                progress.report({ increment: 100 });
+                            })
+                    })
+                    .catch(async e => {
+                        console.log(e);
                         progress.report({ increment: 100 });
                         await commands.executeCommand('editor.action.clipboardPasteAction')
-                        return;
-                    }
-
-                    window.showTextDocument(e.doc, ViewColumn.Active, false)
-                        .then(async editor => {
-                            editor.revealRange(new Range(selection.start, selection.start), TextEditorRevealType.InCenter);
-                            await editor.edit(eb => {
-                                eb.insert(selection.start, e.fthtml);
-                            })
-                            progress.report({ increment: 100 });
-                        })
-                })
-                .catch(async e => {
-                    console.log(e);
-                    progress.report({ increment: 100 });
-                    await commands.executeCommand('editor.action.clipboardPasteAction')
-                })
+                    })
 
                 return Promise.resolve();
             })
@@ -125,10 +129,15 @@ export function activate(context: ExtensionContext) {
                 client.outputChannel.clear();
                 return Promise.resolve();
             }),
+            client.onRequest('updateDecorations', () => DecorationsProvider(client))
         )
     })
 
-
+    window.onDidChangeActiveTextEditor(editor => {
+        if (editor) {
+            DecorationsProvider(client)
+        }
+    }, null, context.subscriptions)
 }
 
 export function deactivate(): Thenable<void> | undefined {

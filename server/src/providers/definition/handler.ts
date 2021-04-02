@@ -8,14 +8,45 @@ import { getAllMatches } from "../../common/utils/string";
 
 export default async function FTHTMLDefinitionProviderHandler(params: DefinitionParams, context: IScopeContext): Promise<Location[]> {
 
-    const text = context.document.getText(context.document.lineAt(params.position.line).range);
-    const importMatch = text.match(/import\s+(['"])([^\1]*)\1(\s+\{)?/);
-    const varRange = getWordRangeAtPosition(context.document.lines, params.position, /(^|[\s\(\{\.])@?[\w-]+([\s\)\}]|$)/);
+    try {
+        const text = context.document.getText(context.document.lineAt(params.position.line).range);
+        const importMatch = text.match(/import\s+(['"])([^\1]*)\1(\s+\{)?/);
+        const jsonMatch = text.match(/json[ ]*\((['"])([^\1]*)\1[ ]*\)/);
 
-    if (importMatch) return [await _getImportDefinitions(importMatch, context)];
-    else if (varRange) return await _getVariableDefinitions(varRange, context);
+        if (importMatch) return [await _getImportDefinitions(importMatch, context)];
+        else if (jsonMatch) return [await _getJsonDefinition(jsonMatch, context)];
+        else {
+            const varRange = getWordRangeAtPosition(context.document.lines, params.position, /@?[\w-]+/);
+
+            return await _getVariableDefinitions(varRange, context);
+        }
+    } catch (error) {
+        console.log(error);
+    }
 
     return
+}
+
+async function _getJsonDefinition(match, { document, workspace, config }: IScopeContext) : Promise<Location> {
+    const [, , filename] = match;
+
+    let tld = path.dirname(URI.parse(workspace.uri).fsPath);
+    if (config.json.jsonDir && workspace) {
+        tld = path.resolve(URI.parse(workspace.uri).fsPath, config.json.jsonDir);
+    }
+    let filePath = path.resolve(tld, `${filename}.json`);
+
+    if (filename.startsWith('&')) {
+        filePath = path.resolve(path.dirname(URI.parse(document.uri).fsPath), `${filename.substring(1)}.json`);
+    }
+
+    console.log(filePath);
+    if (existsSync(filePath)) {
+        return {
+            uri: URI.file(filePath).path,
+            range: Range.create(0, 0, 0, 0)
+        }
+    }
 }
 
 async function _getImportDefinitions(match, { document, workspace, config }: IScopeContext): Promise<Location> {
@@ -53,7 +84,7 @@ async function _getVariableDefinitions(range: Range, { document, config }: IScop
         const fthtmlconfigLines = config.content.split("\n");
 
         if (config.json.globalvars && config.json.globalvars[word] ||
-            config.json.globalTinyTemplates && config.json.globalTinyTemplates[word]) {
+            config.json.tinytemplates && config.json.tinytemplates[word]) {
             const indx = config.content.indexOf(`"${word}"`);
 
             let chars = 0;

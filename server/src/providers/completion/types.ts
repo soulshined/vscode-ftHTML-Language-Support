@@ -75,11 +75,22 @@ export function ConstantCompletionItem(label: string) : CompletionItem {
     }
 }
 
-export function SnippetCompletionItem(label: string, insertText: string) : CompletionItem {
+export function SnippetCompletionItem(label: string, insertText: string, description?: string) : CompletionItem {
     return {
         label,
         kind: CompletionItemKind.Snippet,
-        insertText
+        insertText,
+        detail: description
+    }
+}
+
+export function VariableCompletionItem(label: string, detail: string): CompletionItem {
+    return {
+        label: `@${label}`,
+        kind: CompletionItemKind.Variable,
+        detail,
+        insertText: `@${label}`,
+        filterText: label
     }
 }
 

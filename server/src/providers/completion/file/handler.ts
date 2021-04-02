@@ -1,4 +1,3 @@
-import { join } from "path";
 import { CompletionItem, CompletionParams } from "vscode-languageserver";
 import { URI } from "vscode-uri";
 import { IScopeContext } from "../../../common/context";
@@ -7,6 +6,7 @@ import { createPathCompletionItem, getChildrenOfPath, getPathOfFolderToLookupFil
 
 export async function OnFileCompletionHandler(params: CompletionParams, context: IScopeContext): Promise<CompletionItem[]> {
     if (!params.context.triggerCharacter) return;
+
     const info: IFileCompletionItemInfo = FileCompletionItemInfo(context.document, params.position);
     if (info.stringAutocompleteValue === undefined) return;
 
@@ -16,13 +16,13 @@ export async function OnFileCompletionHandler(params: CompletionParams, context:
 async function provide(context: IScopeContext, info: IFileCompletionItemInfo): Promise<CompletionItem[]> {
     const workspace = context.workspace;
 
-    let root = URI.parse(workspace.uri).fsPath;
-
+    let root;
     if (!info.isByReference) {
         if (context.config && info.isForImport && context.config.json['importDir'])
-            root = join(root, context.config.json.importDir)
+            root = context.config.json.importDir;
         else if (context.config && info.isForJson && context.config.json['jsonDir'])
-            root = join(root, context.config.json.jsonDir)
+            root = context.config.json.jsonDir;
+        else root = URI.parse(workspace.uri).fsPath
     }
 
     const path = getPathOfFolderToLookupFiles(

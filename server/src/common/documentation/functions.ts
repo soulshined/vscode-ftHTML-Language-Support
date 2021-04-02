@@ -165,6 +165,34 @@ pre {
             }
         ]
     },
+    join: {
+        documentation: `Return a joined iterable object by a given delimiter. You must only pass variables as the value argument. Throws if the object in the variable is not an array or object. When an object is provided, the keys will be joined
+
+Examples:
+
+\`\`\`fthtml
+#vars
+   date str_split("01 01 1999" " ")
+#end
+
+join(@date "/")
+//01/01/1999
+\`\`\``,
+        returnType: 'string',
+        parameters: [
+            {
+                name: "value",
+                isOptional: false,
+                datatype: ["Variable"]
+            },
+            {
+                name: "delimiter",
+                isOptional: true,
+                datatype: ["String", "Variable"],
+                documentation: `Defaults to a comma delimiter: ','`
+            }
+        ]
+    },
     json: {
         documentation: `Imports a json file and parses it into an object that can be referenced using dot notation.
 
@@ -192,6 +220,50 @@ myJson json("foo")
                 documentation: `A filename should exclude the \`.json\` extension.
 
 If an \`fthtmlconfig.json\` file is being used to set the \`jsonDir\`, you can explicitly force a relative path by prepending the filename with the 'by reference' symbol \`&\``
+            }
+        ]
+    },
+    len: {
+        documentation: `Returns the length of a given string, object or array dynamically.
+
+When passing a variable as the value argument:
+- If the variable holds an array, the number of elements in the array will be returned
+- If the variable holds an object, the number of __keys__ in the object will be returned
+
+Otherwise, the length of the value will be returned via it's 'toString()' method
+
+Examples:
+\`\`\`fthtml
+#vars
+  cars json("foo")
+
+  bmws json("\${ @cars.bmw.models }") //get only the bmws of the cars json file
+
+  m3Values json("\${ @bmws.m3 | values }")
+#end
+
+len(@bmws)
+//returns the number of keys in the object
+
+len(@m3Values)
+//only the values of the m3 model
+
+len(str_split("01/01/1999" "/"))
+//10 because it's split into an array of: [01, 01, 1999] but not assigned to a variable, so it uses the arrays toString() method
+
+#vars
+  date str_split("01/01/1999" "/")
+#end
+
+len(@date)
+//3 because it's assigned to a variable therefore the raw type is maintained (an array)
+\`\`\``,
+        returnType: 'int',
+        parameters: [
+            {
+                name: "value",
+                isOptional: false,
+                datatype: ["String", "Variable", "Function", "Word"]
             }
         ]
     },
@@ -280,6 +352,33 @@ Pattern uses regular javascript flavor rules.`,
             }
         ]
     },
+    str_split: {
+        documentation: `Split a resolved string by a given delimeter
+
+Example:
+
+\`\`\`fthtml
+#vars
+   date str_split("01 01 1999" " ")
+#end
+
+div join(@date "/")
+//<div>01/01/1999</div>
+\`\`\``,
+        returnType: 'object[]',
+        parameters: [
+            {
+                name: 'value',
+                isOptional: false,
+                datatype: ["String", "Variable", "Function", "Macro"]
+            },
+            {
+                name: 'delimiter',
+                isOptional: false,
+                datatype: ["String", "Variable"]
+            }
+        ]
+    },
     str_repeat: {
         documentation: `Repeat a string or value a given number of times
 
@@ -323,11 +422,14 @@ div str_reverse("Hello. World.")
         ]
     },
     str_format: {
-        documentation: `Format a number to currency, units, percents etc.
+        documentation: `Format a number to currency, units, percents etc, or a date.
 
-This uses the javascript \`Intl.FormatNumber\` method.
+This uses the javascript \`Intl.FormatNumber\` module for numbers:
 
 See https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Intl/NumberFormat
+
+This uses the javascript \`Intl.DateTimeFormat\` module for dates:
+https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Intl/DateTimeFormat
 
 Examples:
 
@@ -335,15 +437,22 @@ Examples:
 div str_format("12345.0" "currency")
 //<div>$12,345.00</div>
 \`\`\`
-
+<br>
 \`\`\`fthtml
 div str_format("12345.0" "currency" "currency: JPY, maximumSignificantDigits: 3")
 //<div>¥12,000</div>
 \`\`\`
+<br>
 
 \`\`\`fthtml
 div str_format("123.0" "unit" "unit: mile-per-hour")
 //<div>123 mph</div>
+\`\`\`
+<br>
+
+\`\`\`fthtml
+div str_format("March 19 2000" "date" "dateStyle: full, timeStyle: long")
+//<div>Sunday, March 19, 2000 at 12:00:00 AM PST</div>
 \`\`\``,
         returnType: 'string',
         parameters: [
@@ -356,7 +465,7 @@ div str_format("123.0" "unit" "unit: mile-per-hour")
             {
                 name: 'style',
                 isOptional: false,
-                datatype: ["enum => 'currency', 'number', 'unit', 'percent', 'decimal'"]
+                datatype: ["enum => 'currency', 'number', 'unit', 'percent', 'date', 'decimal'"]
             },
             {
                 name: 'options',
@@ -364,9 +473,11 @@ div str_format("123.0" "unit" "unit: mile-per-hour")
                 datatype: ["String"],
                 documentation: `[Optional]
 
-A comma delimited string of key/value pairs of \`Intl.FormatNumber options\`
+A comma delimited string of key/value pairs of \`(Intl.FormatNumber)[] options\`
 
 See https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Intl/NumberFormat/resolvedOptions.
+
+or \`Intl.DateTimeFormat options\` for 'date' formatting see https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Intl/DateTimeFormat.
 
 Example:
 

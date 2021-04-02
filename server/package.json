@@ -1,7 +1,7 @@
 {
     "name": "fthtml-language-support-lsp-server",
     "description": "",
-    "version": "1.1.0",
+    "version": "2.0.0",
     "publisher": "davidfreer",
     "author": "David Freer",
     "license": "MIT",
@@ -14,7 +14,7 @@
         "url": "https://github.com/soulshined/vscode-ftHTML-Language-Support"
     },
     "dependencies": {
-        "fthtml": "^3.1.0",
+        "fthtml": "^4.0.0",
         "vscode-html-languageservice": "^4.0.1",
         "vscode-languageserver": "^7.0.0",
         "vscode-languageserver-textdocument": "^1.0.1",

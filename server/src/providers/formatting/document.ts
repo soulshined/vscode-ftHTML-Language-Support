@@ -1,24 +1,29 @@
 import functions from "fthtml/lib/lexer/grammar/functions";
 import macros from "fthtml/lib/lexer/grammar/macros";
+import { FTHTMLComment, token, TOKEN_TYPE as TT } from "fthtml/lib/lexer/types";
+import { StackTrace } from "fthtml/lib/utils/exceptions";
 import { SELF_CLOSING_TAGS } from "fthtml/lib/utils/self-closing-tags";
 import { getLanguageService as HTMLLS, Node as HTMLNode } from "vscode-html-languageservice";
-import { FormattingOptions, SymbolKind, TextEdit, _Connection } from "vscode-languageserver";
+import { FormattingOptions, TextEdit, _Connection } from "vscode-languageserver";
 import { TextDocument } from "vscode-languageserver-textdocument";
 import { IBaseContext, IScopeContextDocument } from "../../common/context";
 import { clamp } from "../../common/utils/number";
 import { repeat } from "../../common/utils/string";
 import { FTHTMLFormats } from "../../config/settings";
-import { ftHTMLElement } from "../../parser/model";
-import { FTHTMLLSParser } from "../../parser/parser";
-import StackTrace from "../../parser/stacktrace";
-import { TOKEN_TYPE, TOKEN_TYPE as TT } from "../../parser/token";
+import { ftHTMLParser } from "fthtml/lib/parser/fthtml-parser";
+import { URI } from "vscode-uri";
+import { IFTHTMLElement } from "fthtml/lib/parser/types";
+import { isExpectedType, isOneOfExpectedTypes } from "fthtml/lib/utils/functions";
+import { ImportMode, ParentMode, ParentModes, WordMode } from "./model/parent-mode";
+import { FTHTMLElement } from "fthtml/lib/parser/models";
+import { getFTHTMLTokenValue } from "../../common/utils/token";
 
 export interface HTMLFormattingOptions extends FormattingOptions {
     indent: number;
 }
 
 export class FTHTMLDocumentFormatProvider {
-    private last_element: ftHTMLElement = null;
+    private last_element: IFTHTMLElement = null;
     private document: IScopeContextDocument;
     private formattingOptions: FormattingOptions;
     private formats: FTHTMLFormats;
@@ -30,6 +35,8 @@ export class FTHTMLDocumentFormatProvider {
     }
 
     public async convertHTML(html: string, indent: number) {
+        if (!html.startsWith('<') || !html.endsWith('>')) return;
+
         const doc = TextDocument.create('', 'html', 1, html);
         const nodes = HTMLLS().parseHTMLDocument(doc);
 
@@ -68,22 +75,20 @@ export class FTHTMLDocumentFormatProvider {
         if (isEmbeddedLang) {
             if (!node.attributes) {
                 const elang = node.tag === 'script' ? 'js' : 'css';
-                const { start } = this.getBracesForType({ token: { type: TT.ELANG, value: elang, position: { line: 0, column: 0 } }, symbolKind: SymbolKind.Null, isParentWithftHTMLBlockBody: false, children: [] }, indentation);
+                const { start } = this.getBracesForType({ type: TT.ELANG, value: elang, position: { line: 0, column: 0 } }, null, indentation);
                 fthtml += `${elang}${start}`;
             }
         }
         else fthtml += node.tag;
 
-
-        const element: ftHTMLElement = {
+        const element: IFTHTMLElement = {
             token: {
                 position: { line: 0, column: 0 },
-                type: TOKEN_TYPE.WORD,
+                type: TT.WORD,
                 value: node.tag
             },
             children: [],
-            symbolKind: SymbolKind.Null,
-            isParentWithftHTMLBlockBody: false,
+            isParentElement: false,
             attrs: undefined
         }
 
@@ -115,7 +120,7 @@ export class FTHTMLDocumentFormatProvider {
         }
 
         if (node.children.length > 0) {
-            const { start, end } = this.getBracesForType(element, indentation);
+            const { start, end } = this.getBracesForType(element.token, element.attrs, indentation);
 
             fthtml += start;
 
@@ -146,7 +151,8 @@ export class FTHTMLDocumentFormatProvider {
         try {
             StackTrace.clear();
 
-            const ftHTML = new FTHTMLLSParser(context.config).compile(this.document.getText());
+            const file = URI.parse(context.document.uri).fsPath;
+            const ftHTML = new ftHTMLParser().parseSrc(context.document.getText(), file.substring(0, file.length - 7), context.config.json);
             let formatted = this.prettify(ftHTML).trim();
 
             if (this.formattingOptions.insertFinalNewline)
@@ -154,12 +160,11 @@ export class FTHTMLDocumentFormatProvider {
 
             return Promise.resolve([TextEdit.replace(this.document.totalRange, formatted)]);
         } catch (error) {
-            console.log(error);
             return [];
         }
     }
 
-    private getBracesForType({ token, attrs }: ftHTMLElement, indentation: string) {
+    private getBracesForType(token: token, attrs: Map<string, IFTHTMLElement[]>, indentation: string) {
         let result = ' ';
 
         if (token.type === TT.WORD && SELF_CLOSING_TAGS.includes(token.value))
@@ -190,19 +195,20 @@ export class FTHTMLDocumentFormatProvider {
         return result;
     }
 
-    private formatAttributes(element: ftHTMLElement, spacing: string) {
+    private formatAttributes(element: IFTHTMLElement, spacing: string) {
 
         if (!element.attrs) return '';
 
         let id;
-        if (element.attrs.get('id').size > 0) {
-            const val = element.attrs.get('id').values().next().value;
-            id = val.startsWith('@') ? `id=${val}` : `#${val}`;
+        if (element.attrs.get('id').length > 0) {
+            id = getFTHTMLTokenValue(element.attrs.get('id')[0]);
         }
 
-        let classes = Array.from(element.attrs.get('classes'));
-        let misc = Array.from(element.attrs.get('misc'));
-        let kvps = Array.from(element.attrs.get('kvps'));
+        let classes = element.attrs.get('classes').map(attr => getFTHTMLTokenValue(attr));
+        let misc = element.attrs.get('misc').map(attr => getFTHTMLTokenValue(attr));
+        let kvps = element.attrs.get('kvps').map(attr =>
+            `${attr.token.value}=${getFTHTMLTokenValue(attr.children[0])}`
+        );
 
         if (this.formats.attributes.sorted) {
             classes = classes.sort();
@@ -210,7 +216,7 @@ export class FTHTMLDocumentFormatProvider {
             kvps = kvps.sort();
         }
 
-        const numOfAttrs = (element.attrs.get('id').size + element.attrs.get('classes').size + element.attrs.get('misc').size + element.attrs.get('kvps').size);
+        const numOfAttrs = (element.attrs.get('id').length + classes.length + misc.length + kvps.length);
         const canWrap = this.formats.attributes.wrapOrderedAttributes && numOfAttrs >= this.formats.attributes.minimumNumberOfAttributesForWrapping;
 
         let alignment = ' ';
@@ -242,36 +248,26 @@ export class FTHTMLDocumentFormatProvider {
         return text;
     }
 
-    private isOnSameLineAsLastElement(element: ftHTMLElement) {
+    private isOnSameLineAsLastElement(element: IFTHTMLElement) {
         if (!this.last_element) return false;
 
         return this.last_element.token.position.line === element.token.position.line;
     }
 
-    private isOnSameLineAsLastElementTargetTypes(types: TT[], element: ftHTMLElement) {
-        if (!this.last_element) return false;
-
-        return types.includes(this.last_element.token.type) && this.isOnSameLineAsLastElement(element);
-    }
-
-    private isOfType(types: (TT | string)[], element: ftHTMLElement) {
-        return types.includes(element.token.type) || types.includes(`${element.token.type}_${element.token.value}`);
-    }
-
     private isLastElementOfType(types: (TT | string)[]) {
         if (!this.last_element) return false;
 
-        return this.isOfType(types, this.last_element);
+        return isOneOfExpectedTypes(this.last_element.token, types);
     }
 
-    private isDistanceGreaterThan(aElement: ftHTMLElement, bElement: ftHTMLElement, lines: number) {
+    private isDistanceGreaterThan(aElement: IFTHTMLElement, bElement: IFTHTMLElement, lines: number) {
         if (!aElement || !bElement) return false;
 
-        return aElement.token.position.line - this.last_element.token.position.line > lines;
+        return aElement.token.position.line - bElement.token.position.line > lines;
     }
 
-    private getSpacing(elements: ftHTMLElement[], forElementIndex: number, indent: number, braces: any) {
-        const wordsInSameColumn = elements.filter(f => this.isOfType([TT.WORD], f)).map(m => m.token.value);
+    private getSpacing(elements: IFTHTMLElement[], forElementIndex: number, indent: number, parentMode: ParentMode) {
+        const wordsInSameColumn = elements.filter(f => isExpectedType(f.token, TT.WORD)).map(m => m.token.value);
         const longestWord = wordsInSameColumn.length > 0
             ? wordsInSameColumn.reduce((c, v) => c.length > v.length ? c : v)
             : undefined;
@@ -279,10 +275,11 @@ export class FTHTMLDocumentFormatProvider {
 
         let valueSpacing = '';
         if (longestWord && this.formats.alignVariableOrPropertyBindingValues
-            && braces
-            && braces.indent_level === indent) {
+            && parentMode
+            && ![ParentModes.WORD, ParentModes.UNDEFINED].includes(parentMode.mode)
+            && parentMode.indent === indent) {
             valueSpacing += repeat(' ', longestWord.length - element.token.value.length);
-            if (this.isOfType(['Symbol_{'], element))
+            if (isExpectedType(element.token, 'Symbol_{'))
                 valueSpacing = valueSpacing.substring(this.last_element.token.value.length - 1);
         }
 
@@ -292,36 +289,54 @@ export class FTHTMLDocumentFormatProvider {
         }
     }
 
-    private getEndOfTagCommentForElement(element: ftHTMLElement) {
-        let selector = element.token.value;
-        if (!this.formats.braces.skipTagNamesForCommentAfterClosingBrace.includes(selector)) {
-            if (element.attrs) {
-                if (element.attrs.get('id').size > 0) {
-                    selector += `#${element.attrs.get('id').values().next().value}`;
+    private canAddEndOfTagComment(elements: IFTHTMLElement[], i) {
+        const next = i + 1 >= elements.length ? null : elements[i + 1];
+
+        if (!next) return false;
+
+        const nextIsComment = isOneOfExpectedTypes(next.token, FTHTMLComment);
+        const isEnoughDistance = this.isDistanceGreaterThan(this.last_element, elements[i], this.formats.braces.minimumNumberOfLinesToAddIdentifierComment - 1);
+
+        return this.formats.braces.addIdentifierCommentAfterClosingBrace
+            && !(nextIsComment && this.isOnSameLineAsLastElement(next))
+            && isEnoughDistance
+    }
+
+    private getEndOfTagCommentForElement(elements: IFTHTMLElement[], i) {
+        const element = elements[i];
+
+        if (this.canAddEndOfTagComment(elements, i)) {
+            let selector = element.token.value;
+            if (!this.formats.braces.skipTagNamesForCommentAfterClosingBrace.includes(selector)) {
+                if (element.attrs) {
+                    if (element.attrs.get('id').length > 0) {
+                        selector += getFTHTMLTokenValue(element.attrs.get('id')[0]);
+                    }
+                    else if (element.attrs.get('classes').length > 0) {
+                        selector += `${getFTHTMLTokenValue(element.attrs.get('classes')[0])}`
+                    }
+                    else if (element.attrs.get('kvps').length > 0) {
+                        selector += ` ${element.token.value}=${getFTHTMLTokenValue(element.attrs.get('kvps')[0])}`
+                    }
+                    else if (element.attrs.get('misc').length > 0) {
+                        selector += ` ${getFTHTMLTokenValue(element.attrs.get('misc')[0])}`
+                    }
                 }
-                else if (element.attrs.get('classes').size > 0) {
-                    selector += `${element.attrs.get('classes').values().next().value}`
-                }
-                else if (element.attrs.get('kvps').size > 0) {
-                    selector += ` ${element.attrs.get('kvps').values().next().value}`
-                }
-                else if (element.attrs.get('misc').size > 0) {
-                    selector += ` ${element.attrs.get('misc').values().next().value}`
-                }
+                return ` // end of ${selector}`;
             }
-            return ` // end of ${selector}`;
         }
 
         return '';
     }
 
-    private canCollapse(element: ftHTMLElement, valueSpacing, spacing) {
+    private canCollapse(element: IFTHTMLElement, valueSpacing: string, spacing: string, parentMode: ParentMode) {
         if (!this.formats.collapseSingleChildElements ||
             this.formats.skipTagNamesForCollapsing.includes(element.token.value) ||
-            !element.isParentWithftHTMLBlockBody) return false;
+            !element.isParentElement ||
+            (parentMode && ![ParentModes.UNDEFINED, ParentModes.WORD].includes(parentMode.mode))) return false;
 
         if (element.children.length !== 1 ||
-            element.children[0].isParentWithftHTMLBlockBody ||
+            element.children[0].isParentElement ||
             element.children[0].children.length > 1 ||
             this.formats.skipTagNamesForCollapsing.includes(element.children[0].token.value))
             return false;
@@ -329,21 +344,29 @@ export class FTHTMLDocumentFormatProvider {
         if (element.children[0].children.length === 1 && this.formats.skipTagNamesForCollapsing.includes(element.children[0].children[0].token.value))
             return false;
 
-        return this.getCollapsedChild(this.last_element, valueSpacing, spacing).count <= this.formats.collapseSingleChildElementsIfLineLengthLessThan
+        if (element.children.length === 1 && isExpectedType(element.children[0].token, TT.COMMENT))
+            return false;
+
+        return this.getCollapsedChild(element, valueSpacing, spacing).count <= this.formats.collapseSingleChildElementsIfLineLengthLessThan
     }
 
-    private getCollapsedChild(element: ftHTMLElement, valueSpacing, spacing) {
+    private getCollapsedChild(element: IFTHTMLElement, valueSpacing: string, spacing: string) {
         let line = '';
         let child = element.children[0];
-        line += ` ${valueSpacing}{ ${child.token.value}`;
+        line += ` ${valueSpacing}{ ${getFTHTMLTokenValue(child)}`;
         if (child.attrs)
             line += this.formatAttributes(child, spacing);
 
+        this.last_element = child;
         if (child.children.length > 0) {
-            if (this.isOfType([TT.FUNCTION], child.children[0]))
-                line += ` ${child.children[0].token.value}(${child.children[0].children.map(arg => arg.token.value).join(" ")})`;
-            else
-                line += ` ${child.children[0].token.value}`;
+            if (isExpectedType(child.children[0].token, TT.FUNCTION)) {
+                line += ` ${child.children[0].token.value}(${child.children[0].children.map(arg => getFTHTMLTokenValue(arg)).join(" ")})`;
+                this.last_element = child.children[0].children[child.children[0].children.length - 1];
+            }
+            else {
+                line += ` ${getFTHTMLTokenValue(child.children[0])}`;
+                this.last_element = child.children[0];
+            }
         }
 
         return {
@@ -352,169 +375,314 @@ export class FTHTMLDocumentFormatProvider {
         };
     }
 
-    private prettify(elements: ftHTMLElement[], indent: number = 0, braces?: { mode: string, indent_level: number }): string {
-        let text = '';
-        for (let i = 0; i < elements.length; i++) {
-            const element = elements[i];
-            const { spacing, valueSpacing } = this.getSpacing(elements, i, indent, braces);
+    private newlineRules(elements: IFTHTMLElement[], i: number, indent: number) {
+        const element: IFTHTMLElement = elements[i];
+        let [before, after] = [0, 0];
+        if (i !== elements.length - 1 && isOneOfExpectedTypes(element.token, FTHTMLComment))
+            return {
+                newlines: [before, after]
+            }
 
-            let newlines = 1;
+        if (!isOneOfExpectedTypes(element.token, [...FTHTMLComment, 'Symbol_=', 'Symbol_(', 'Symbol_)', TT.ATTR_CLASS, TT.ATTR_CLASS_VAR, TT.ATTR_ID, TT.OPERATOR])) {
+            before++;
+            if (this.isDistanceGreaterThan(element, this.last_element, 1)) before++;
+        }
 
-            //add new line before first child
-            if (this.formats.newLineBeforeFirstChildElement && i === 0
+        if (i === 0) {
+            if (this.formats.newLineBeforeFirstChildElement
                 && indent >= this.formats.newLineBeforeAfterChildElementMinimumDepth
                 && indent <= this.formats.newLineBeforeAfterChildElementMaximumDepth
-                && element.token.position.line - this.last_element.token.position.line < 2
-                && !this.isOfType([TT.COMMENT, TT.COMMENTB], element))
-                newlines++;
+                && !isOneOfExpectedTypes(element.token, FTHTMLComment)) before++;
 
-            //add new element to every element that isn't a symbol
-            if (!this.isOfType([TT.SYMBOL], element) && this.isDistanceGreaterThan(element, this.last_element, 1)) newlines++
+            if (i === elements.length - 1) {
+                if (this.formats.newLineAfterLastChildElement &&
+                    indent >= this.formats.newLineBeforeAfterChildElementMinimumDepth &&
+                    indent <= this.formats.newLineBeforeAfterChildElementMaximumDepth)
+                    after++;
+            }
+        }
+        else if (i === elements.length - 1 && isExpectedType(element.token, TT.COMMENT)) {
+            if (this.formats.newLineAfterLastChildElement &&
+                indent >= this.formats.newLineBeforeAfterChildElementMinimumDepth &&
+                indent <= this.formats.newLineBeforeAfterChildElementMaximumDepth)
+                after++;
+        }
+        else if (i === elements.length - 1) {
+            if (this.formats.newLineAfterLastChildElement &&
+                indent >= this.formats.newLineBeforeAfterChildElementMinimumDepth &&
+                indent <= this.formats.newLineBeforeAfterChildElementMaximumDepth)
+                after++;
+        }
 
-            if (this.isOfType([TT.WORD], element)) {
-                text += repeat('\n', clamp(newlines, 1, 2));
+        return {
+            newlines: [clamp(before, 0, 2), clamp(after, 0, 2)]
+        }
+    }
+
+    private prettifyTagChildren(element: IFTHTMLElement, indent: number, spacing: string, parentMode: ParentMode) {
+        this.last_element = FTHTMLElement({
+            type: TT.SYMBOL,
+            value: '{',
+            position: element.childrenStart
+        });
+        let fthtml = this.prettify(element.children, indent + 1, parentMode);
+        fthtml += `\n${spacing}}`;
+        this.last_element = FTHTMLElement({
+            type: TT.SYMBOL,
+            value: '}',
+            position: element.childrenEnd
+        });
+        return fthtml;
+    }
+
+    private prettifyIfElseChildren(element: IFTHTMLElement, indent: number, spacing: string, parentMode: ParentMode) {
+        let fthtml = '';
+        if (isExpectedType(element.token, 'Pragma_elif'))
+            fthtml += '\n';
+        fthtml += `${spacing}#${element.token.value} `;
+
+        const [lhs, op, rhs, ...children] = element.children;
+        if (isExpectedType(lhs.token, TT.FUNCTION)) fthtml += this.prettifyFunctionInline(lhs);
+        else fthtml += getFTHTMLTokenValue(lhs);
+        fthtml += ' ';
+        fthtml += getFTHTMLTokenValue(op);
+        fthtml += ' ';
+        if (isExpectedType(rhs.token, TT.FUNCTION)) fthtml += this.prettifyFunctionInline(rhs);
+        else fthtml += getFTHTMLTokenValue(rhs);
+
+        this.last_element = element;
+        fthtml += this.prettify(children, indent + 1, parentMode);
+        return fthtml;
+    }
+    private prettifyPragmaChildren(element: IFTHTMLElement, indent: number, spacing: string) {
+        let fthtml = `${spacing}#${element.token.value}`;
+        this.last_element = element
+        const pm = new ParentMode(indent, ParentModes.VARS);
+
+        if (element.token.value.endsWith('templates'))
+            pm.mode = ParentModes.TINY_TEMPLATES;
+        else if (isExpectedType(element.token, 'Pragma_ifdef')) {
+            pm.mode = ParentModes.IFDEF;
+            fthtml += ` ${element.children.splice(0, 1)[0].token.value}`;
+        }
+
+        fthtml += this.prettify(element.children, indent + 1, pm);
+        this.last_element = FTHTMLElement({
+            type: TT.PRAGMA,
+            position: element.childrenEnd,
+            value: 'end'
+        });
+        fthtml += `\n${spacing}#end`;
+
+        return fthtml;
+    }
+
+    private prettifyFunctionInline(element: IFTHTMLElement, indent: number = 0) {
+        let text = `${element.token.value}(`;
+        this.last_element = element.children[element.children.length - 1];
+        for (let i = 0; i < element.children.length; ++i) {
+            const child = element.children[i];
+            if (isExpectedType(child.token, TT.FUNCTION))
+                text += this.prettifyFunctionInline(child);
+            else text += getFTHTMLTokenValue(child);
+            text += ' ';
+        }
+        return text.trim() + ')';
+    }
+
+    private prettify(elements: IFTHTMLElement[], indent: number = 0, parentMode?: ParentMode): string {
+        let text = '';
+        for (let i = 0; i < elements.length; ++i) {
+            const element = elements[i];
+            const { spacing, valueSpacing } = this.getSpacing(elements, i, indent, parentMode);
+            const rules = this.newlineRules(elements, i, indent);
+
+            text += repeat('\n', rules.newlines[0]);
+
+            if (isExpectedType(element.token, TT.WORD)) {
                 text += `${spacing}${element.token.value}`;
                 text += this.formatAttributes(element, spacing);
-                if (element.children.length > 0 && !element.isParentWithftHTMLBlockBody) {
-                    const child = element.children[0];
-                    if (this.isOfType([TT.FUNCTION], child))
-                        text += ` ${valueSpacing}${child.token.value}(${child.children.map(arg => arg.token.value).join(" ")})`;
-                    else if (braces && braces.mode === 'templates') {
-                        text += ` ${valueSpacing}${child.token.value}${this.formatAttributes(child, spacing)}`;
-                        if (child.children.length > 0)
-                            text += this.prettify(child.children, indent);
-                    }
-                    else
-                        text += ` ${valueSpacing}${child.token.value}`;
-                }
-            }
-            else if (this.isOfType(['Symbol_{'], element)) {
-                let _braces = undefined;
-
-                if (this.isLastElementOfType(['Keyword_import'])) {
-                    if (this.formats.braces.newLineAfterImport) text += `\n${spacing}{`;
-                    else text += ` ${valueSpacing}\{`;
-                    _braces = {
-                        mode: "import",
-                        indent_level: indent + 1
-                    }
-                }
-                else if (braces) {
-                    if (this.isLastElementOfType([TT.WORD]) && this.formats.braces.newLineAfterVariableOrPropertyBinding && ["import", "vars"].includes(braces.mode) && indent === braces.indent_level) {
-                        text += `\n${this.getIndentation(braces.indent_level)}\{`;
-                    }
-                    else text += ` ${valueSpacing}\{`;
-                }
-                else if (this.canCollapse(this.last_element, valueSpacing, spacing)) {
-                    text += this.getCollapsedChild(this.last_element, valueSpacing, spacing).value;
+                if (this.canCollapse(element, valueSpacing, spacing, parentMode)) {
+                    text += this.getCollapsedChild(element, valueSpacing, spacing).value;
                     text += ` }`;
-                    this.last_element = elements[i + 1];
-                    i++;
+                }
+                else if (element.isParentElement && element.children.length > 0) {
+                    const pm = new WordMode(indent);
 
-                    if (this.formats.newLineAfterLastChildElement && i === elements.length - 1 &&
-                        indent >= this.formats.newLineBeforeAfterChildElementMinimumDepth &&
-                        indent <= this.formats.newLineBeforeAfterChildElementMaximumDepth)
-                        text += '\n';
+                    if (parentMode && ![ParentModes.WORD, ParentModes.UNDEFINED].includes(parentMode.mode) && indent === parentMode.indent) {
+                        text += ` ${valueSpacing}\{`
+                    }
+                    else if (this.formats.braces.newLineAfterElement && !element.attrs)
+                        text += `\n${spacing}\{`
+                    else if (this.formats.braces.newLineAfterAttributes && element.attrs) {
+                        text += `\n${spacing}\{`;
+                    }
+                    else text += ` \{`;
+
+                    text += this.prettifyTagChildren(element, indent, spacing, pm);
+                    text += this.getEndOfTagCommentForElement(elements, i);
+                    text += repeat('\n', rules.newlines[1]);
+
                     continue;
                 }
-                else if (this.formats.braces.newLineAfterElement && !this.last_element.attrs)
-                    text += `\n${spacing}\{`
-                else if (this.formats.braces.newLineAfterAttributes && this.last_element.attrs) {
-                    text += `\n${spacing}\{`;
-                }
-                else text += ` ${valueSpacing}\{`;
+                else if (element.isParentElement && element.children.length === 0) {
+                    if (this.formats.braces.removeBracesForEmptyParents) {
+                        text += repeat('\n', rules.newlines[1]);
+                        this.last_element = element;
+                        continue;
+                    }
 
-                if (this.last_element?.isParentWithftHTMLBlockBody) {
-                    const prev = this.last_element
-                    this.last_element = element
-                    text += this.prettify(prev.children, indent + 1, _braces);
-                }
-            }
-            else if (this.isOfType(['Symbol_}'], element)) {
-                const elem = i - 2 < 0 ? null : elements[i - 2];
-                const next = i + 1 >= elements.length ? null : elements[i + 1];
+                    if (parentMode && ![ParentModes.WORD, ParentModes.UNDEFINED].includes(parentMode.mode) && indent === parentMode.indent) {
+                        text += ` ${valueSpacing}\{`
+                    }
+                    else if (this.formats.braces.newLineAfterElement && !element.attrs)
+                        text += `\n${spacing}\{`
+                    else if (this.formats.braces.newLineAfterAttributes && element.attrs) {
+                        text += `\n${spacing}\{`;
+                    }
+                    else text += ` \{`;
 
-                text += `\n${spacing}}`;
-                if (this.formats.braces.addIdentifierCommentAfterClosingBrace
-                    && (!next || (next && !(['Comment', 'CommentB'].includes(next.token.type)
-                        && next.token.position.line === element.token.position.line)))
-                    && elem
-                    && this.isDistanceGreaterThan(element, this.last_element, this.formats.braces.minimumNumberOfLinesToAddIdentifierComment - 1) ) {
-                    text += this.getEndOfTagCommentForElement(elem);
+                    text += `\}`;
+                    this.last_element = FTHTMLElement({
+                        type: TT.SYMBOL,
+                        value: '}',
+                        position: element.childrenEnd
+                    })
+                    text += repeat('\n', rules.newlines[1]);
+                    continue;
+                }
+                else if (element.children.length > 0) {
+                    const child = element.children[0];
+                    if (isExpectedType(child.token, TT.FUNCTION))
+                        text += ` ${valueSpacing}${child.token.value}(${child.children.map(arg => getFTHTMLTokenValue(arg)).join(" ")})`;
+                    else if (child.token.value === 'json') {
+                        const file = child.children[0];
+                        text += ` ${valueSpacing}json(${getFTHTMLTokenValue(file)})`;
+                        this.last_element = file;
+                        text += repeat('\n', rules.newlines[1]);
+                        continue;
+                    }
+                    else if (parentMode && parentMode.mode === ParentModes.TINY_TEMPLATES) {
+                        text += ` ${valueSpacing}${child.token.value}${this.formatAttributes(child, spacing)}`;
+                        if (child.children.length > 0)
+                            text += ` ${getFTHTMLTokenValue(child.children[0])}`;
+                    }
+                    else text += ` ${valueSpacing}${getFTHTMLTokenValue(child)}`;
                 }
             }
-            else if (this.isOfType([TT.PRAGMA], element)) {
-                text += repeat('\n', clamp(newlines, 1, 2));
-                text += `${spacing}#${element.token.value}`;
-                this.last_element = element
-                const _braces = {
-                    mode: element.token.value,
-                    indent_level: indent + 1
-                };
-                text += this.prettify(element.children, indent + 1, _braces);
-                text += `\n${spacing}#end`
-            }
-            else if (this.isOfType([TT.COMMENT, TT.COMMENTB], element)) {
+            else if (isOneOfExpectedTypes(element.token, FTHTMLComment)) {
                 let val = element.token.value;
 
-                if (this.isOnSameLineAsLastElement(element) && !this.isLastElementOfType([TT.COMMENT, TT.COMMENTB])) text += ` ${val}`;
-                else if (this.formats.newLineBeforeComments || this.isLastElementOfType([TT.COMMENT, TT.COMMENTB])) {
-                    const sym = i - 2 < 0 ? undefined : elements[i - 2];
-                    if (sym && this.isOfType(['Symbol_}'], sym) || this.isDistanceGreaterThan(element, this.last_element, 1)) text += '\n';
-                    text += `\n${val.split("\n").map(line => `${spacing}${line}`).join("\n")}`
+                if (this.isOnSameLineAsLastElement(element) && isExpectedType(element.token, TT.COMMENT)) text += ` ${val}`;
+                else if (this.formats.newLineBeforeComments || this.isLastElementOfType(FTHTMLComment)) {
+                    if (this.isLastElementOfType(['Symbol_}']) || this.isDistanceGreaterThan(element, this.last_element, 1)) text += '\n';
+
+                    text += `\n${val.split("\n").map(line => `${spacing}${line.trim()}`).join("\n")}`
                 }
-                else text += `${val.split("\n").map(line => `${spacing}${line}`).join("\n")}`;
+                else text += `${val.split("\n").map(line => `${spacing}${line.trim()}`).join("\n")}`;
             }
-            else if (this.isOfType([TT.FUNCTION], element)) {
-                if (!this.isLastElementOfType([TT.WORD])) text += '\n';
-                if (this.isLastElementOfType([TT.WORD, TT.STRING])) {
-                    text += ` ${valueSpacing}${element.token.value}(${element.children.map(arg => arg.token.value).join(" ")})`;
+            else if (isExpectedType(element.token, TT.PRAGMA)) {
+                if (isOneOfExpectedTypes(element.token, ['Pragma_templates', 'Pragma_tinytemplates', 'Pragma_vars', 'Pragma_ifdef'])) {
+                    text += this.prettifyPragmaChildren(element, indent, spacing);
+                    text += repeat('\n', rules.newlines[1]);
+                    continue;
                 }
-                else {
-                    text += `${spacing}${element.token.value}(${element.children.map(arg => arg.token.value).join(" ")})`;
+                else if (isExpectedType(element.token, 'Pragma_debug')) {
+                    text += `${spacing}#debug `;
+                    if (isExpectedType(element.children[0].token, TT.FUNCTION)) {
+                        text += `${element.children[0].token.value}(`;
+                        text += `${element.children[0].children.map(arg =>getFTHTMLTokenValue(arg)).join(" ")})`;
+                        this.last_element = element.children[0].children[element.children[0].children.length - 1];
+                    }
+                    else {
+                        text += `${getFTHTMLTokenValue(element.children[0])}`;
+                        this.last_element = element.children[0];
+                    }
+                    text += repeat('\n', rules.newlines[1]);
+                    continue;
+                }
+                else if (isExpectedType(element.token, 'Pragma_if')) {
+                    for (let j = 0; j < element.children.length; j++) {
+                        const subpragma = element.children[j];
+                        if (!isExpectedType(subpragma.token, 'Pragma_else'))
+                            text += this.prettifyIfElseChildren(subpragma, indent, spacing, parentMode);
+                        else {
+                            text += `\n${spacing}#else`;
+                            this.last_element = subpragma;
+                            text += this.prettify(subpragma.children, indent + 1, parentMode);
+                        }
+                    }
+                    text += `\n${spacing}#end`;
+                    this.last_element = FTHTMLElement({
+                        type: TT.PRAGMA,
+                        value: 'end',
+                        position: element.childrenEnd
+                    });
+                    text += repeat('\n', rules.newlines[1]);
+                    continue;
                 }
             }
-            else if (this.isOfType([TT.MACRO], element)) {
-                text += repeat('\n', clamp(newlines, 0, 2));
+            else if (isOneOfExpectedTypes(element.token, ['Keyword_import'])) {
+                const file = element.children.shift();
+                text += `${spacing}import ${getFTHTMLTokenValue(file)}`;
+
+                this.last_element = file;
+                if (element.isParentElement) {
+                    text += !this.formats.braces.newLineAfterImport ? ' {' : `\n${spacing}{`;
+                    text += this.prettifyTagChildren(element, indent, spacing, new ImportMode(indent));
+                    text += this.getEndOfTagCommentForElement(elements, i);
+                    text += repeat('\n', rules.newlines[1]);
+                    continue;
+                }
+            }
+            else if (isOneOfExpectedTypes(element.token, [TT.KEYWORD, TT.KEYWORD_DOCTYPE])) {
+                text += `${spacing}${element.token.value} ${getFTHTMLTokenValue(element.children[0])}`;
+                this.last_element = element.children[0];
+                text += repeat('\n', rules.newlines[1]);
+                continue;
+            }
+            else if (isOneOfExpectedTypes(element.token, [TT.ELANG])) {
+                text += `${spacing}${element.token.value}`;
+                if (this.formats.braces.newLineAfterEmbeddedLangs)
+                    text += `\n${spacing}\{`
+                else text += ` \{`;
+
+                const elangb = element.children[0];
+
+                text += `\n\n${this.getIndentation(indent + 1)}${elangb.token.value.trim()}\n\n${spacing}}`;
+                this.last_element = FTHTMLElement({
+                    type: TT.SYMBOL,
+                    value: '}',
+                    position: elangb.token.position
+                })
+                text += repeat('\n', rules.newlines[1]);
+                continue;
+            }
+            else if (isExpectedType(element.token, TT.MACRO)) {
                 if (this.isLastElementOfType([TT.WORD, TT.STRING]))
                     text += ` ${valueSpacing}${element.token.value}`;
                 else
                     text += `${spacing}${element.token.value}`;
             }
-            else if (this.isOfType([TT.ELANG], element)) {
-                text += repeat('\n', clamp(newlines, 0, 2));
-                text += `${spacing}${element.token.value} `;
-                if (this.formats.braces.newLineAfterEmbeddedLangs)
-                    text += `\n${spacing}\{`
-                else text += `\{`;
-
-                text += `\n\n${this.getIndentation(indent + 1)}${element.children[0].token.value.trim()}\n\n${spacing}}`;
-            }
-            else if (this.isOfType(['Keyword_import'], element)) {
-                text += repeat('\n', clamp(newlines, 0, 2));
-                text += `${spacing}import ${element.children.shift().token.value}`;
-            }
-            else if (this.isOfType([TT.KEYWORD, TT.KEYWORD_DOCTYPE], element)) {
-                text += `\n${spacing}${element.token.value} ${element.children[0].token.value}`;
-            }
-            else {
-                text += repeat('\n', clamp(newlines, 0, 2));
-                text += `${spacing}${element.token.value}`;
-                if (element.children.length > 0) {
-                    this.last_element = element
-                    text += this.prettify(element.children, indent + 1);
+            else if (isExpectedType(element.token, TT.FUNCTION)) {
+                if (!this.isLastElementOfType([TT.WORD])) text += '\n';
+                if (this.isLastElementOfType([TT.WORD, TT.STRING])) {
+                    text += ` ${valueSpacing}${this.prettifyFunctionInline(element)}`;
                 }
+                else {
+                    text += `${spacing}${this.prettifyFunctionInline(element)}`;
+                }
+                text += repeat('\n', rules.newlines[1]);
+                continue;
             }
 
+            else text += `${spacing}${getFTHTMLTokenValue(element)}`;
+
+            text += repeat('\n', rules.newlines[1]);
             this.last_element = element;
+        }
 
-            if (this.formats.newLineAfterLastChildElement && i === elements.length - 1 &&
-                indent >= this.formats.newLineBeforeAfterChildElementMinimumDepth &&
-                indent <= this.formats.newLineBeforeAfterChildElementMaximumDepth)
-                text += '\n';
-        };
-
-        return text
+        return text;
     }
 
 }

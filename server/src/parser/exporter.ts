@@ -32,6 +32,7 @@ export default async function FTHTMLExport(context: IBaseContext, extn: { path: 
     } catch (error) {
         console.log('Attempting to convert ftHTML failed.\n');
         let position = undefined;
+        let message;
         let stack = [];
         if (error.stderr) {
             if (error.stderr.match(/\s*ftHTML.*Error:[ ].*/) !== null) {
@@ -39,11 +40,13 @@ export default async function FTHTMLExport(context: IBaseContext, extn: { path: 
                 if (_stack) {
                     _stack = _stack.filter((s: string) => s.trim() !== '');
                     _stack.splice(0, 3);
-                    for (let i of _stack) {
-                        stack.push(i);
-                        console.log(i);
-                        if (i.trim().startsWith("position")) {
-                            let [line, column] = i.split(",");
+                    for (let i = 0; i < _stack.length; i++) {
+                        stack.push(_stack[i]);
+                        console.log(_stack[i]);
+                        if (i === 0)
+                            message = _stack[i].substring(_stack[i].indexOf(':') + 1).trim();
+                        if (_stack[i].trim().startsWith("position")) {
+                            let [line, column] = _stack[i].split(",");
 
                             line = +line.substring(line.lastIndexOf(" ") + 1);
                             column = +column.substring(column.lastIndexOf(" ") + 1);
@@ -78,14 +81,14 @@ export default async function FTHTMLExport(context: IBaseContext, extn: { path: 
             const diagnostic: Diagnostic = {
                 severity: DiagnosticSeverity.Error,
                 range: Range.create(pos, pos),
-                message: 'Error on Export',
+                message: message ?? 'Error on Export',
                 source: "fthtml"
             }
 
             if (hasDiagnosticRelatedInformationCapability) {
                 diagnostic.relatedInformation = [
                     {
-                        message: '\n' + stack.join("\n").substring(1, stack.join("\n").lastIndexOf(']')),
+                        message: '\n' + stack.join("\n").substring(0, stack.join("\n").lastIndexOf('{')),
                         location: Location.create(document.uri, Range.create(pos,pos))
                     }
                 ]

@@ -1,5 +1,61 @@
 # Change Log
 
+## [v5.0.0]
+
+Support for new ftHTML 4.0 - Heliotrope update
+
+See details on remaining changes: https://www.fthtml.com/changelog/#Heliotrope
+
+Huge update includes a ton of performance enchancements and scope aware control-flow:
+
+- Syntax Highlighting
+  * Did a complete tmLanguage overhaul for more accurate syntax highlighting
+- Tiny Templates Decoration
+
+  When you call a tiny template, the element is now underlined, by default, via an editor decorator to give you a visual identifier that the element is a tiny template. This is useful because you can make an alias of a native HTML tag name, if you want, though, it's not recommended, but also useful in general to kindly at a glance understand where it's coming from.
+
+  You can edit the appearance as you see fit using the new setting configurations:
+  ```
+  {
+    "workbench.colorCustomizations": {
+        "fthtml.tinytemplateBackground": {
+          default: transparent
+        }
+    }
+    "fthtml.decorations.tinytemplates.afterContent",
+    "fthtml.decorations.tinytemplates.beforeContent",
+    "fthtml.decorations.tinytemplates.textDecoration": {
+        "default": "#BDB395 underline"
+    },
+    "fthtml.decorations.tinytemplates.fontStyle": {
+        "default": "italic"
+    },
+    "fthtml.decorations.tinytemplates.fontWeight": {
+        "default": "normal"
+    }
+  }
+  ```
+- Definition Handler (Peek Definitions)
+  * Update for tiny-templates and variables coming from extended fthtmlconfig files
+  * Now includes support for json files
+- Hover provider
+  * Added contextual information to most documentation shortcuts, like hover, suggestion details and show info. For example, if you hover over a tiny template (alias) it will show what it's resolves to:
+- Language Enhancement
+  * Updated the language configuration to not include '@' symbols to better align with the languages usage. Meaning, if you press `ctrl+backspace`, now it will delete the entire variable, including the symbol, whereas before it would just delete the name but leave the `@` symbol
+- Autocomplete
+  * Autocomplete updated to only show applicable items depending on scope and position
+  * Global elements, naturally are suggested, but autocomplete now also includes locally defined elements from the respective file (like aliases, variables etc)
+
+    For example, it will only suggest applicable data types for a function argument or if-else expression respective to it's position or argument position
+- Formatting
+  * Add option to remove braces from elements with no children
+
+    `fthtml.format.braces.removeBracesForEmptyParents`
+- Performance
+  * Enchanced error reporting
+  * Added debouncing functionality for saving and validating files
+  * Formatting assurance
+
 ## [v4.1.0]
 
 Support for ftHTML 3.1 - the smaragdine update final features

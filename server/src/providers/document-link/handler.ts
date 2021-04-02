@@ -1,4 +1,5 @@
 import { dirname, join, resolve } from "path";
+import { Range } from "vscode-html-languageservice";
 import { DocumentLink, DocumentLinkParams, DocumentSymbol, SymbolKind } from "vscode-languageserver-protocol";
 import { URI } from "vscode-uri";
 import { IBaseContext } from "../../common/context";
@@ -14,41 +15,73 @@ export function OnDocumentLinkProvider(params: DocumentLinkParams, context: IBas
     }
 
     syms.forEach((sym: DocumentSymbol) => {
-        const { range: { start, end }, name } = sym;
-        let val = name.split(" ", 2)[1];
+        const _sym = _getSymbolByKind(sym, context);
 
-        const range = {
-            start: {
-                line: start.line,
-                character: start.character + "import ".length
-            },
-            end: {
-                line: end.line,
-                character: start.character + "import ".length + val.length - 2
-            }
-        }
-
-        val = val.substring(1, val.length - 1); //remove quotes
-
-        const isByReference = val.startsWith('&');
-        if (isByReference) val = val.substring(1);
-
-        if (!val.startsWith('./') && !val.startsWith('/')) val = './' + val;
-        else if (val.startsWith('/')) val = '.' + val;
-
-        val += '.fthtml';
-
-        let dir = dirname(URI.parse(context.document.uri).fsPath);
-        if (context.config && context.config.json.importDir && !isByReference)
-            dir = join(URI.parse(context.workspace.uri).fsPath, context.config.json.importDir);
-
-        links.push({
-            range,
-            target: URI.file(resolve(dir, val)).path
-        })
+        if (_sym) links.push(_sym);
     })
 
     return links;
+}
+
+function _getSymbolByKind(symbol: DocumentSymbol, context) {
+    const { range: { start, end }, name } = symbol;
+    const split = name.split(" ", 2);
+    let val = split[1];
+
+    const range = {
+        start: {
+            line: start.line,
+            character: start.character + split[0].length + 2
+        },
+        end: {
+            line: end.line,
+            character: start.character + split[0].length + val.length
+        }
+    }
+    val = val.substring(1, val.length - 1).trim(); //remove quotes
+
+    if (symbol.kind === SymbolKind.Function && symbol.name.startsWith("json"))
+        return _getJsonSymbol(val, range, context);
+
+    return _getImportSymbol(val, range, context);
+}
+
+function _getJsonSymbol(val: string, range: Range, context: IBaseContext) {
+    if (val.startsWith("$")) return;
+
+    const isByReference = val.startsWith('&');
+    if (isByReference) val = val.substring(1);
+
+    if (!val.startsWith('./') && !val.startsWith('/')) val = './' + val;
+    else if (val.startsWith('/')) val = '.' + val;
+
+    val += '.json';
+    let dir = dirname(URI.parse(context.document.uri).fsPath);
+    if (context.config && context.config.json.jsonDir && !isByReference)
+        dir = context.config.json.jsonDir;
+
+    return {
+        range,
+        target: URI.file(resolve(dir, val)).path
+    }
+}
+
+function _getImportSymbol(val: string, range: Range, context) {
+    const isByReference = val.startsWith('&');
+    if (isByReference) val = val.substring(1);
+
+    if (!val.startsWith('./') && !val.startsWith('/')) val = './' + val;
+    else if (val.startsWith('/')) val = '.' + val;
+
+    val += '.fthtml';
+    let dir = dirname(URI.parse(context.document.uri).fsPath);
+    if (context.config && context.config.json.importDir && !isByReference)
+        dir = context.config.json.importDir;
+
+    return {
+        range,
+        target: URI.file(resolve(dir, val)).path
+    }
 }
 
 function _getFlatLinks(symbols: DocumentSymbol[]) : DocumentSymbol[] {
@@ -56,6 +89,8 @@ function _getFlatLinks(symbols: DocumentSymbol[]) : DocumentSymbol[] {
 
     symbols.forEach(sym => {
         if (sym.kind === SymbolKind.Method && sym.name.startsWith('import'))
+            links.push(sym);
+        if (sym.kind === SymbolKind.Function && sym.name.startsWith('json'))
             links.push(sym);
 
         links.push(..._getFlatLinks(sym.children));

@@ -2,7 +2,7 @@
     "name": "fthtml-language-support",
     "displayName": "ftHTML Language Support",
     "description": "Support for fthtml preprocessor language, including automatic file detection, syntax highlighting, basic formatting, snippets and more",
-    "version": "4.1.0",
+    "version": "5.0.0",
     "publisher": "davidfreer",
     "bugs": {
         "url": "https://github.com/soulshined/vscode-ftHTML-Language-Support/issues"
@@ -18,8 +18,18 @@
     },
     "keywords": [
         "fthtml",
-        "html",
-        "preprocessor"
+        "ftHTML",
+        "HTML",
+        "preprocessor",
+        "variables",
+        "cli",
+        "template",
+        "binding",
+        "control flow",
+        "directive",
+        "pragma",
+        "if",
+        "if else"
     ],
     "categories": [
         "Programming Languages",
@@ -37,6 +47,17 @@
                 "category": "ftHTML",
                 "title": "Convert HTML on Paste",
                 "command": "fthtml.convert-html-on-paste"
+            }
+        ],
+        "colors": [
+            {
+                "id": "fthtml.tinytemplateBackground",
+                "description": "Background decoration color for aliases (tiny templates)",
+                "defaults": {
+                    "dark": "#FF000000",
+                    "light": "#FF000000",
+                    "highContrast": "#FF000000"
+                }
             }
         ],
         "keybindings": [
@@ -85,15 +106,9 @@
                 }
             }
         ],
-        "snippets": [
-            {
-                "language": "fthtml",
-                "scopeName": "source.fthtml",
-                "path": "./client/src/snippets/fthtml.json"
-            }
-        ],
         "configurationDefaults": {
             "[fthtml]": {
+                "editor.wordSeparators": "`~!#$%^&*()-=+[{]}\\|;:'\",.<>/?",
                 "editor.autoClosingBrackets": "languageDefined"
             }
         },
@@ -179,6 +194,11 @@
                     "default": 16,
                     "minimum": 1,
                     "description": "Define which elements need an identifier by targeting elements with a certain length of lines"
+                },
+                "fthtml.format.braces.removeBracesForEmptyParents": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "Removed start and end tag braces for elements that don't contain any children"
                 },
                 "fthtml.format.braces.skipTagNamesForCommentAfterClosingBrace": {
                     "type": "array",
@@ -278,6 +298,37 @@
                     "default": 6,
                     "minimum": 0,
                     "description": "Define the minimum number of attribute sets before starting to wrap the groups on their own lines"
+                },
+                "fthtml.decorations.tinytemplates.afterContent": {
+                    "type": "string",
+                    "description": "A string of text or, say even an emoji, that is shown in the editor (but not part of the actual text content, after a tiny template name is used as an element"
+                },
+                "fthtml.decorations.tinytemplates.beforeContent": {
+                    "type": "string",
+                    "description": "A string of text or, say even an emoji, that is shown in the editor (but not part of the actual text content, before a tiny template name is used as an element"
+                },
+                "fthtml.decorations.tinytemplates.textDecoration": {
+                    "type": "string",
+                    "default": "#BDB395 underline",
+                    "description": "A CSS text decoration property"
+                },
+                "fthtml.decorations.tinytemplates.fontStyle": {
+                    "enum": [
+                        "normal",
+                        "italic"
+                    ],
+                    "default": "italic",
+                    "description": "A CSS fontStyle value"
+                },
+                "fthtml.decorations.tinytemplates.fontWeight": {
+                    "enum": [
+                        "normal",
+                        "bold",
+                        "lighter",
+                        "bolder"
+                    ],
+                    "default": "normal",
+                    "description": "A CSS fontWeight value"
                 },
                 "fthtml.format.newLineBeforeComments": {
                     "type": "boolean",

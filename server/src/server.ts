@@ -29,7 +29,9 @@ import {
     CompletionTriggerKind,
     FormattingOptions,
     DocumentLinkParams,
-    DocumentLink
+    DocumentLink,
+    DocumentHighlightParams,
+    SymbolKind,
 } from 'vscode-languageserver/node';
 import { join } from "path";
 import {
@@ -44,7 +46,7 @@ import FTHTMLServerCapabilities from './config/capabilities';
 import SignatureHelpHandler from './providers/signature/handler';
 import { OnCodeActionHandler } from './providers/code-actions/handler';
 import { FTHTMLDocumentFormatProvider } from './providers/formatting/document';
-import FTHTMLDocumentSymbolProviderHandler from './providers/symbol/document';
+import FTHTMLDocumentSymbolProviderHandler, { FTHTMLDocumentSymbolFilter } from './providers/symbol/document';
 import FTHTMLDefinitionProviderHandler from './providers/definition/handler';
 import { URI } from 'vscode-uri';
 import { existsSync, readFileSync } from 'fs';
@@ -54,6 +56,9 @@ import { SELECTOR } from './common/constants';
 import { OnFileCompletionHandler } from './providers/completion/file/handler';
 import { OnDocumentLinkProvider } from './providers/document-link/handler';
 import FTHTMLExport from './parser/exporter';
+import parseFTHTMLConfig from 'fthtml/cli/utils/user-config-helper';
+import { VariableCompletionHandler } from './providers/completion/variable/handler';
+import { debounce } from './common/utils/functions';
 
 // Create a connection for the server, using Node's IPC as a transport.
 // Also include all preview / proposed LSP features.
@@ -125,7 +130,7 @@ let extn: { path: string, uri: URI };
 // Cache the settings of all open documents
 let documentSettings: Map<string, Thenable<FTHTMLSettings>> = new Map();
 
-const Context = async (params: TextDocumentPositionParams | DocumentLinkParams): Promise<IScopeContext | undefined> => {
+const Context = async (params: TextDocumentPositionParams | DocumentLinkParams | DocumentHighlightParams): Promise<IScopeContext | undefined> => {
     const ctx = await ScopeContext(params, documents, await getDocumentSettings(params.textDocument.uri), connection);
 
     if (ctx.workspace) {
@@ -177,7 +182,7 @@ function updateFTHTMLConfig(path) {
             const content = readFileSync(path, 'utf-8');
             fthtmlconfig = {
                 path,
-                json: JSON.parse(content),
+                json: parseFTHTMLConfig(path).configs,
                 content
             }
         } catch (error) {
@@ -193,9 +198,10 @@ documents.onDidClose(e => {
 
 // The content of a text document has changed. This event is emitted
 // when the text document first opened or when its content has changed.
-documents.onDidChangeContent(async (e: TextDocumentChangeEvent<TextDocument>) => {
+documents.onDidChangeContent(debounce(async (e: TextDocumentChangeEvent<TextDocument>) => {
     await validateTextDocument(e.document);
-});
+    connection.sendRequest('updateDecorations').catch(console.log);
+}, 1000));
 
 async function validateTextDocument(document: TextDocument): Promise<void> {
     const scope = await TextDocumentEventContext(document, documents, await getDocumentSettings(document.uri), connection);
@@ -203,6 +209,11 @@ async function validateTextDocument(document: TextDocument): Promise<void> {
     if (!scope || !scope.settings.validation.enabled) {
         connection.sendDiagnostics({ uri: document.uri, diagnostics: [] });
         return;
+    }
+
+    if (scope.workspace) {
+        if (!fthtmlconfig) updateFTHTMLConfig(join(URI.parse(scope.workspace.uri).fsPath, 'fthtmlconfig.json'));
+        scope.config = fthtmlconfig;
     }
 
     new FTHTMLValidator(scope);
@@ -218,17 +229,22 @@ documents.onWillSaveWaitUntil(async (params: TextDocumentWillSaveEvent<TextDocum
         insertFinalNewline: await connection.workspace.getConfiguration("editor.insertFinalNewline")
     }
 
+    if (scope.workspace) {
+        if (!fthtmlconfig) updateFTHTMLConfig(join(URI.parse(scope.workspace.uri).fsPath, 'fthtmlconfig.json'));
+        scope.config = fthtmlconfig;
+    }
+
     const formatter = new FTHTMLDocumentFormatProvider(formatOpts, scope);
     return Promise.resolve(formatter.format(scope));
 })
 
-documents.onDidSave(async (e: TextDocumentChangeEvent<TextDocument>) => {
+documents.onDidSave(debounce(async (e: TextDocumentChangeEvent<TextDocument>) => {
     const scope = await TextDocumentEventContext(e.document, documents, await getDocumentSettings(e.document.uri), connection);
 
     if (!scope || !scope.settings.export.onSave || !scope.workspace) return;
 
     return FTHTMLExport(scope, extn, hasDiagnosticRelatedInformationCapability);
-})
+}, 1000));
 
 connection.onDidChangeWatchedFiles((params: DidChangeWatchedFilesParams) => {
     connection.console.log('We received a file change event');
@@ -245,10 +261,13 @@ connection.onCompletion(async (params: CompletionParams): Promise<CompletionItem
     const scope = await Context(params);
     if (!scope) return [];
 
+    if (params.context.triggerKind === CompletionTriggerKind.TriggerCharacter &&
+        params.context.triggerCharacter === '@')
+        return await VariableCompletionHandler(params, scope);
     if (params.context.triggerKind === CompletionTriggerKind.TriggerCharacter)
         return await OnFileCompletionHandler(params, scope);
 
-    return OnCompletionHandler(params, scope);
+    return await OnCompletionHandler(params, scope);
 });
 
 // This handler resolves additional information for the item selected in
@@ -279,7 +298,7 @@ connection.onSignatureHelp(async (params: SignatureHelpParams): Promise<Signatur
     return SignatureHelpHandler(scope);
 });
 
-// code completion handler
+// code action handler
 connection.onCodeAction(async (params: CodeActionParams): Promise<CodeAction[] | undefined> => {
     const scope = await BaseContext(params, documents, await getDocumentSettings(params.textDocument.uri), connection);
     if (!scope) return [];
@@ -330,6 +349,39 @@ connection.onDocumentLinks(async (params: DocumentLinkParams): Promise<DocumentL
     return OnDocumentLinkProvider(params, scope);
 })
 
+//decoration
+connection.onRequest('decorations', async (e) => {
+    const settings = await getDocumentSettings(e.doc);
+
+    let tinyts = {};
+    if (fthtmlconfig) {
+        for (const [key, value] of Object.entries(fthtmlconfig.json.tinytemplates)) {
+            tinyts[key] = value['value'].value;
+        }
+    }
+
+    const ctx = {
+        document: e.doc,
+        settings,
+        connection,
+        workspace: undefined
+    }
+
+    FTHTMLDocumentSymbolFilter(e.doc.uri, ctx, [
+        SymbolKind.Struct, SymbolKind.Property
+    ]).forEach(sym => {
+        if (sym.detail === 'tinytemplates directive') {
+            sym.children?.forEach(child => {
+                tinyts[child.name] = null;
+            })
+        }
+    });
+
+    return {
+        settings: settings.decorations.tinytemplates,
+        data: tinyts
+    };
+})
 // Make the text document manager listen on the connection
 // for open, change and close text document events
 documents.listen(connection);

@@ -1,14 +1,10 @@
+import { FTHTMLConfig } from "fthtml/cli/utils/user-config-helper";
 import { platform } from "os";
 
 export interface FTHTMLConfigs {
     path: string,
     content: string,
-    json: {
-        importDir: string,
-        jsonDir: string,
-        globalvars: { [key: string]: string },
-        globalTinyTemplates: { [key: string]: string }
-    }
+    json: FTHTMLConfig
 }
 
 export interface FTHTMLFormats {
@@ -21,6 +17,7 @@ export interface FTHTMLFormats {
         newLineAfterImport: boolean,
         newLineAfterVariableOrPropertyBinding: boolean,
         addIdentifierCommentAfterClosingBrace: boolean,
+        removeBracesForEmptyParents: boolean,
         skipTagNamesForCommentAfterClosingBrace: string[],
         minimumNumberOfLinesToAddIdentifierComment: number
     };
@@ -61,6 +58,17 @@ export interface FTHTMLSettings {
     validation: {
         enabled: boolean
     },
+
+    decorations: {
+        tinytemplates: {
+            afterContent: string,
+            beforeContent: string,
+            textDecoration: string,
+            fontStyle: string,
+            fontWeight: string
+        }
+    },
+
     includeTagNamesInSymbols: boolean,
     shell: string | undefined,
     format: FTHTMLFormats
@@ -87,6 +95,7 @@ const DefaultSettings: FTHTMLSettings = {
         enabled: true,
 
         braces: {
+            removeBracesForEmptyParents: true,
             newLineAfterElement: true,
             newLineAfterEmbeddedLangs: false,
             newLineAfterAttributes: false,
@@ -117,7 +126,18 @@ const DefaultSettings: FTHTMLSettings = {
         collapseSingleChildElements: true,
         collapseSingleChildElementsIfLineLengthLessThan: 80,
         skipTagNamesForCollapsing: ["pre", "code"]
+    },
+
+    decorations: {
+        tinytemplates: {
+            afterContent: null,
+            beforeContent: null,
+            fontStyle: 'italic',
+            fontWeight: 'normal',
+            textDecoration: '#BDB395 underline'
+        }
     }
+
 };
 
 export default DefaultSettings;
