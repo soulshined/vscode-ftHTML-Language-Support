@@ -5,6 +5,7 @@ export interface fthtmlfunc {
         name: string,
         isOptional: boolean,
         datatype: string[],
+        enum?: { values: string[], default: string | null},
         isRestParameter?: boolean,
         documentation?: string
     }[]
@@ -465,6 +466,10 @@ div str_format("March 19 2000" "date" "dateStyle: full, timeStyle: long")
             {
                 name: 'style',
                 isOptional: false,
+                enum: {
+                    values: ['currency', 'date', 'decimal', 'number', 'percent', 'unit'],
+                    default: null
+                },
                 datatype: ["enum => 'currency', 'number', 'unit', 'percent', 'date', 'decimal'"]
             },
             {
@@ -575,8 +580,11 @@ div tcase("Hello. World" "pascal")
             {
                 name: "text case",
                 isOptional: false,
-                datatype: ["enum => 'capitalization' | 'upper' | 'lower' | 'alternating' | 'title' | 'snake' | 'kebab' | 'camel' | 'pascal"],
-
+                enum: {
+                    values: ['alternating', 'camel', 'capitalization', 'kebab', 'lower', 'pascal', 'snake', 'title', 'upper'],
+                    default: null
+                },
+                datatype: ["enum => 'capitalization', 'upper', 'lower', 'alternating', 'title', 'snake', 'kebab', 'camel', 'pascal'"],
             }
         ]
     },
@@ -607,6 +615,10 @@ div trim("   Hello. World.   " "start")
             {
                 name: 'trim style',
                 isOptional: true,
+                enum: {
+                    values: ['end', 'left', 'right', 'start', 'trim'],
+                    default: 'trim'
+                },
                 datatype: ["enum => 'left', 'right', 'start', 'end', 'trim' = 'trim'"]
             }
         ]

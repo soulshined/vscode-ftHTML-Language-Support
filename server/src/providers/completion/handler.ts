@@ -58,6 +58,18 @@ export async function OnCompletionHandler(positionParams: TextDocumentPositionPa
         if (param.datatype.includes('Function'))
             snippets.push(...getFunctionCompletionItems());
 
+        if (param.enum) {
+            param.enum.values.forEach(val => {
+                snippets.push({
+                    label: val,
+                    kind: CompletionItemKind.EnumMember,
+                    insertText: `'${val}'`
+                })
+            })
+
+            return snippets;
+        }
+
         if (param.datatype.includes('Macro'))
             snippets.push(...getMacroCompletionItems());
 
