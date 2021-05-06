@@ -1,12 +1,40 @@
 # Change Log
 
+## [v6.0.0]
+
+Support for new ftHTML 5.0 - Onyx
+
+See details on remaining changes: https://www.fthtml.com/changelog/#Onyx
+
+- New Features
+  * Code Actions
+    * New configuration setting `fthtml.codeactions.refactor.omit` to limit what code actions populate
+    * Added 2 new code actions for you to quickly refactor
+      - Interpolate (quickly insert string interpolation syntax)
+      - HTML Encoder (quickly encode/decode a compatible string)
+- Updates
+  - Autocompletion
+    * Added support for dot-notation variables (trigger character is a period (`.`), but the document must first have been scrubbed for symbols)
+    * Added support for piped lambdas for interpolation (trigger character is a pipe (`|`))
+    * Updated autocomplete to only show functions that a particular function accepts as arguments
+  - Syntax Highlighting
+    * Added support for dot-notation variables
+    * Added support for new keywords and new functions
+      - each loop
+      - keys, values, range, sort
+- Enhancements
+  * To converting HTML on paste
+  * Document Linking (remove erroneous underlines for imports with string interpolation)
+  * Formatting
+  * Validator and Exporter error reporting
+
 ## [v5.0.0]
 
 Support for new ftHTML 4.0 - Heliotrope update
 
 See details on remaining changes: https://www.fthtml.com/changelog/#Heliotrope
 
-Huge update includes a ton of performance enchancements and scope aware control-flow:
+Huge update includes a ton of performance enhancements and scope aware control-flow:
 
 - Syntax Highlighting
   * Did a complete tmLanguage overhaul for more accurate syntax highlighting
@@ -52,7 +80,7 @@ Huge update includes a ton of performance enchancements and scope aware control-
 
     `fthtml.format.braces.removeBracesForEmptyParents`
 - Performance
-  * Enchanced error reporting
+  * Enhanced error reporting
   * Added debouncing functionality for saving and validating files
   * Formatting assurance
 
@@ -77,7 +105,7 @@ With a proper language server the TL;DR of new features are as follows:
   - Supports imports, json and by reference prefixes
 - Convert html to ftHTML on paste
 - Document formatting
-  - Added formating
+  - Added formatting
   - Added more use cases for how braces are formatted
 - Broader symbol support
 - Document linking
@@ -97,7 +125,7 @@ Moved the configurations to `fthtml.export`.
 
 To enable/disable exporting on save functionality, use: `fthtml.export.onSave`
 
-To clear the output everytime an export is started, use: `fthtml.export.clearOutput`
+To clear the output every time an export is started, use: `fthtml.export.clearOutput`
 
 Added the option for the user to define how they want to be notified of failures with:
 
@@ -469,7 +497,7 @@ Using the prefix `fthtml.format.`
 ## [v3.0.2]
 
 - Added a global setting for defining your preferred shell to use for converting files by calling the
-node execuatable. For macs this defaults to '/usr/local/bin', for windows it uses the default process
+node executable. For macs this defaults to '/usr/local/bin', for windows it uses the default process
 
 - Fixed a syntax highlighting issue for unintentionally reporting child elements as errors
 

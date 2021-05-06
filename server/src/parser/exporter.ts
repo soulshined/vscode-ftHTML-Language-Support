@@ -1,5 +1,5 @@
 import { resolve } from "path";
-import { Diagnostic, DiagnosticSeverity, Location, MessageActionItem, Position, Range } from "vscode-languageserver";
+import { Diagnostic, DiagnosticSeverity, Location, MessageActionItem, Range } from "vscode-languageserver";
 import { URI } from "vscode-uri";
 import { IBaseContext } from "../common/context";
 import { exec } from "../common/utils/cmd";
@@ -31,33 +31,30 @@ export default async function FTHTMLExport(context: IBaseContext, extn: { path: 
         console.log(`-----------------------------------------`);
     } catch (error) {
         console.log('Attempting to convert ftHTML failed.\n');
-        let position = undefined;
         let message;
         let stack = [];
         if (error.stderr) {
-            if (error.stderr.match(/\s*ftHTML.*Error:[ ].*/) !== null) {
+            if (error.stderr.match(/\s*FTHTML.*Error[\]]?:[ ].*/) !== null) {
                 let _stack = error.stderr.split(/[\r\n]/);
                 if (_stack) {
                     _stack = _stack.filter((s: string) => s.trim() !== '');
-                    _stack.splice(0, 3);
                     for (let i = 0; i < _stack.length; i++) {
-                        stack.push(_stack[i]);
                         console.log(_stack[i]);
-                        if (i === 0)
+                        if (message === undefined && /\s*FTHTML.*Error[\]]?:[ ].*/.test(_stack[i]))
                             message = _stack[i].substring(_stack[i].indexOf(':') + 1).trim();
-                        if (_stack[i].trim().startsWith("position")) {
-                            let [line, column] = _stack[i].split(",");
+                        else if (/^at\s(import|template)?\s*\(/.test(_stack[i].trim())) {
+                            let fname = _stack[i].substring(_stack[i].indexOf('(') + 1, _stack[i].lastIndexOf(')'));
+                            const [line, col] = fname.substring(fname.lastIndexOf('.fthtml:') + 8).split(':');
 
-                            line = +line.substring(line.lastIndexOf(" ") + 1);
-                            column = +column.substring(column.lastIndexOf(" ") + 1);
-                            position = Position.create(line - 1, column - 1);
+                            fname = fname.substring(0, fname.lastIndexOf('.fthtml') + 7);
+                            const end = /^at\s(import|template)/.test(_stack[i].trim()) ? +col + 6 : +col;
+                            stack.push({
+                                location: Location.create(URI.file(fname).path, Range.create(+line - 1, +col - 1, +line - 1, end - 1)),
+                                message: stack.length > 0 ? '\n  at ' + stack.map(m => m.location.uri).join("\n  at ") : ''
+                            })
                         }
+                        else if (message !== undefined && stack.length === 0) message += `\n${_stack[i]}`;
                     }
-                }
-
-                if (position === undefined && _stack[0].startsWith("[ftHTMLImportError:")) {
-                    let pos = _stack[1].substring(_stack[1].lastIndexOf('.fthtml:') + 8, _stack[1].length - 1).split(':')
-                    position = Position.create(pos[0] - 1, pos[1].substring(0, pos[1].length - 1) - 1);
                 }
             }
             else {
@@ -76,24 +73,18 @@ export default async function FTHTMLExport(context: IBaseContext, extn: { path: 
             connection.sendRequest('showOutputChannel');
         }
         else if (settings.export.onErrorOutputMode === "problem-panel") {
-            const pos = position ?? Position.create(0,0);
-
+            const first = stack.shift();
             const diagnostic: Diagnostic = {
                 severity: DiagnosticSeverity.Error,
-                range: Range.create(pos, pos),
+                range: first.location.range,
                 message: message ?? 'Error on Export',
                 source: "fthtml"
             }
 
             if (hasDiagnosticRelatedInformationCapability) {
-                diagnostic.relatedInformation = [
-                    {
-                        message: '\n' + stack.join("\n").substring(0, stack.join("\n").lastIndexOf('{')),
-                        location: Location.create(document.uri, Range.create(pos,pos))
-                    }
-                ]
+                diagnostic.relatedInformation = stack;
             }
-            connection.sendDiagnostics({ uri: document.uri, diagnostics: [diagnostic] })
+            connection.sendDiagnostics({ uri: first.location.uri, diagnostics: [diagnostic] })
         }
         else console.log(error);
     }

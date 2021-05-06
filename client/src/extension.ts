@@ -93,8 +93,8 @@ export function activate(context: ExtensionContext) {
 
                 await client.sendRequest('pasted', {
                     doc: document,
-                    options: options,
-                    indent: previousLine.firstNonWhitespaceCharacterIndex,
+                    options,
+                    indent: previousLine.firstNonWhitespaceCharacterIndex / (options.tabSize as number),
                     data
                 })
                     .then(async (e: { doc: TextDocument, fthtml: string }) => {
@@ -131,6 +131,9 @@ export function activate(context: ExtensionContext) {
             }),
             client.onRequest('updateDecorations', () => DecorationsProvider(client))
         )
+
+        if (process.env.IS_DEBUG)
+            client.outputChannel.show(true);
     })
 
     window.onDidChangeActiveTextEditor(editor => {

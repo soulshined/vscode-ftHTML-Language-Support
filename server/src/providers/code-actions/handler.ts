@@ -1,18 +1,34 @@
+import { Token } from "fthtml/lib/model/token";
 import { CodeAction, CodeActionKind, CodeActionParams, TextEdit, WorkspaceEdit } from "vscode-languageserver";
 import { Range, TextDocument } from "vscode-languageserver-textdocument";
 import { IBaseContext } from "../../common/context";
 import { PATTERNS } from "../../common/patterns";
+import { getElementForCurrentPosition } from "../../common/utils/string";
 import { FTHTMLSettings } from "../../config/settings";
 
 export function OnCodeActionHandler(params: CodeActionParams, context: IBaseContext): CodeAction[] | undefined {
+    const actions: CodeAction[] = [];
 
     const line = context.document.lineAt(params.range.start.line);
     const convertToChildMatch = _getConvertToChildElementMatch(line.text);
 
     if (convertToChildMatch)
-        return [_getConvertToChildElementAction(context.document, convertToChildMatch, line.rangeIncludingLineBreak, context.settings)]
+        actions.push(_getConvertToChildElementAction(context.document, convertToChildMatch, line.rangeIncludingLineBreak, context.settings));
 
-    return;
+    if (!context.settings.codeactions.refactor.omit.includes('interpolate')) {
+        const element = getElementForCurrentPosition(line.text, params.range, Token.TYPES.STRING, false);
+
+        if (element)
+            actions.push(_getInterpolationAction(context.document, params));
+    }
+
+    if (!context.settings.codeactions.refactor.omit.includes('html_encode')) {
+        const encoderMatch = _getHTMLEncoderMatch(line.text);
+        if (encoderMatch)
+            actions.push(..._getHTMLEncoderActions(context.document, encoderMatch, line.rangeIncludingLineBreak));
+    }
+
+    return actions;
 }
 
 export function CodeActionResolveHandler(item: CodeAction): CodeAction {
@@ -54,3 +70,60 @@ function _getConvertToChildElementAction(document: TextDocument, match: RegExpMa
     return fix;
 }
 
+function _getInterpolationAction(document: TextDocument, params: CodeActionParams) {
+    const changes: { [uri: string]: TextEdit[] } = {};
+    changes[document.uri] = [{
+        newText: `\${}`,
+        range: params.range
+    }]
+
+    return<CodeAction> {
+        title: `Interpolate`,
+        kind: CodeActionKind.RefactorInline,
+        edit: <WorkspaceEdit>{
+            changes,
+        },
+        command: {
+            command: "cursorLeft",
+            title: "cursorLeft"
+        }
+    }
+}
+
+function _getHTMLEncoderMatch(text: string) {
+    let match = text.match(`^(\\s*)([\\w-]+)(?<!import|comment|doctype|${PATTERNS.FUNCTIONS}|${PATTERNS.MACROS})\\s*(\\([^\\)]*\\))?(\\s+)((['\"])([^\\9]*\\9))\\s*$`);
+
+    return match;
+}
+
+function _getHTMLEncoderActions(document: TextDocument, match: RegExpMatchArray, range: Range) {
+    const tag = match[2];
+    const attrs = match[6] ? ` ${match[6]} ` : ' ';
+    const child = match[8];
+
+    const getChanges = (type) => {
+        const changes: { [uri: string]: TextEdit[] } = {};
+        changes[document.uri] = [{
+            newText: `${match[1]}${tag}${attrs}html_${type.toLowerCase()}(${child})\n`,
+            range
+        }]
+        return changes;
+    }
+
+    return [
+        {
+            title: `HTML Encode`,
+            kind: CodeActionKind.RefactorRewrite,
+            edit: <WorkspaceEdit>{
+                    changes: getChanges('Encode')
+                }
+        },
+        {
+            title: `HTML Decode`,
+            kind: CodeActionKind.RefactorRewrite,
+            edit: <WorkspaceEdit>{
+                changes: getChanges('Decode')
+            }
+        }
+    ]
+}

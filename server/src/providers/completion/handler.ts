@@ -1,3 +1,5 @@
+import { FTHTMLElement } from "fthtml/lib/model/fthtmlelement";
+import { Token } from "fthtml/lib/model/token";
 import {
     CompletionItem,
     CompletionItemKind,
@@ -11,10 +13,10 @@ import elangs from "../../common/documentation/elangs";
 import functions, { getFunctionConstructor, misc_methods } from "../../common/documentation/functions";
 import operators from "../../common/documentation/operators";
 import { clamp } from "../../common/utils/number";
-import { getTokenValuesInReverse } from "../../common/utils/string";
+import { getElementsInReverse } from "../../common/utils/string";
 import { FTHTMLDocumentSymbolFilter } from "../symbol/document";
 import fthtml_snippets from "./snippets/fthtml";
-import { KeywordCompletionItem, MarkdownDocumentation, MethodCompletionItem, SnippetCompletionItem } from "./types";
+import { FunctionCompletionItem, KeywordCompletionItem, MarkdownDocumentation, MethodCompletionItem, SnippetCompletionItem } from "./types";
 import { getElangCompletionItems, getFunctionCompletionItems, getMacroCompletionItems, getVariableCompletionItems } from "./utils/helper";
 
 export async function OnCompletionHandler(positionParams: TextDocumentPositionParams, context: IBaseContext): Promise<CompletionItem[]> {
@@ -57,6 +59,12 @@ export async function OnCompletionHandler(positionParams: TextDocumentPositionPa
 
         if (param.datatype.includes('Function'))
             snippets.push(...getFunctionCompletionItems());
+        else {
+            param.datatype.forEach(dt => {
+                if (dt.startsWith('Function_'))
+                    snippets.push(FunctionCompletionItem(dt.substring(dt.indexOf('_') + 1)))
+            });
+        }
 
         if (param.enum) {
             param.enum.values.forEach(val => {
@@ -76,7 +84,16 @@ export async function OnCompletionHandler(positionParams: TextDocumentPositionPa
         return snippets;
     }
 
-    const ifElseExpressionTokens: string[] | undefined = getIfElseExpression(lineText);
+    const nearsetWords = getElementsInReverse(lineText, 4);
+
+    if (nearsetWords.length > 0 && Token.isExpectedType(nearsetWords[0].token, 'Keyword_each')) {
+        snippets.push(...getVariableCompletionItems(vars));
+        snippets.push(...getFunctionCompletionItems((key) => ['keys', 'range', 'sort', 'str_split', 'values'].includes(key)));
+
+        return snippets;
+    }
+
+    const ifElseExpressionTokens: string[] | undefined = getIfElseExpression(nearsetWords);
 
     if (ifElseExpressionTokens !== undefined) {
         const prevChar = lineText.substring(positionParams.position.character - 1, positionParams.position.character);
@@ -101,12 +118,13 @@ export async function OnCompletionHandler(positionParams: TextDocumentPositionPa
 
     const child = SnippetCompletionItem("child", `\${1:div} ${format.braces.newLineAfterElement ? '\n{' : ' {'}\n\t$0\n}`);
 
-    const childWithAttrs = SnippetCompletionItem("childWithAttributes", `\${1:div}($2) ${format.braces.newLineAfterAttributes ? '\n{' : ' {'}\n\t$0\n}`)
+    const childWithAttrs = SnippetCompletionItem("childWithAttributes", `\${1:div}($2) ${format.braces.newLineAfterAttributes ? '\n{' : ' {'}\n\t$0\n}`);
 
     snippets.push(...[
         KeywordCompletionItem("comment"),
         MethodCompletionItem("import"),
         MethodCompletionItem("template"),
+        MethodCompletionItem("each"),
         child,
         childWithAttrs
     ])
@@ -153,6 +171,11 @@ export function CompletionResolveHandler(item: CompletionItem): CompletionItem {
             item.detail = getFunctionConstructor('comment');
             item.documentation = MarkdownDocumentation(misc_methods['comment'].documentation);
             break;
+        case 'each':
+            item.insertText = 'each $1 {\n\t${0:@this}\n}';
+            item.detail = getFunctionConstructor('each');
+            item.documentation = MarkdownDocumentation(misc_methods['each'].documentation);
+            break;
         case 'import':
             item.insertText = 'import "$0"';
             item.detail = getFunctionConstructor('import');
@@ -185,16 +208,15 @@ export function CompletionResolveHandler(item: CompletionItem): CompletionItem {
     return item;
 }
 
-function getIfElseExpression(lineText: string): string[] | undefined {
-    const nearestWords = getTokenValuesInReverse(lineText, 4);
+function getIfElseExpression(nearestPreviousWords: FTHTMLElement[]): string[] | undefined {
+    let element = nearestPreviousWords.pop();
 
-    let pragma = nearestWords.pop();
-    while (pragma !== undefined && pragma !== '#if')
-        pragma = nearestWords.pop();
+    while (element !== undefined && !Token.isExpectedType(element.token, 'Word_#if'))
+        element = nearestPreviousWords.pop();
 
-    if (!pragma || nearestWords.length > 2) return;
+    if (!element || nearestPreviousWords.length > 2) return;
 
-    return nearestWords;
+    return nearestPreviousWords.map(m => m.token.value);
 }
 
 function getPreviousWordIfFunction(lineText: string): [func: string, argIndex: number] | undefined {

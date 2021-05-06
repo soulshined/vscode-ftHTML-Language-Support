@@ -28,7 +28,6 @@ export default function SignatureHelpHandler(context: IScopeContext): SignatureH
     };
     sigInfo.parameters = paramInfoList;
 
-
     // @ts-ignore
     if ((index > func.parameters.length - 1 && getLastElement(func.parameters).isRestParameter))
         activeParameter = func.parameters.length - 1;
@@ -42,7 +41,6 @@ export default function SignatureHelpHandler(context: IScopeContext): SignatureH
     }
 
 }
-
 
 function _parseForFunction({ document, position }: IScopeContext): { name: string, index: number, func: any } | undefined {
     let funcName: string = '';
@@ -79,8 +77,11 @@ function _parseForFunction({ document, position }: IScopeContext): { name: strin
                 stringDelimiter = e;
             }
             else if (e === ' ') {
-                paramIndex++
-                word = '';
+                if ((paramIndex === 0 && word.trim().length > 0) ||
+                    (paramIndex > 0 && word.trim().length > 0)) {
+                    paramIndex++
+                    word = '';
+                }
             }
             else if (isFunction && e === ')') {
                 funcName = prevFuncName;

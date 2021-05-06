@@ -14,7 +14,8 @@
         "url": "https://github.com/soulshined/vscode-ftHTML-Language-Support"
     },
     "dependencies": {
-        "fthtml": "^4.0.1",
+        "fthtml": "^5.0.0",
+        "minimatch": "^3.0.4",
         "vscode-html-languageservice": "^4.0.1",
         "vscode-languageserver": "^7.0.0",
         "vscode-languageserver-textdocument": "^1.0.1",

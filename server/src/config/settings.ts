@@ -12,6 +12,7 @@ export interface FTHTMLFormats {
 
     braces: {
         newLineAfterElement: boolean,
+        newLineAfterLoop: boolean,
         newLineAfterEmbeddedLangs: boolean,
         newLineAfterAttributes: boolean,
         newLineAfterImport: boolean,
@@ -47,16 +48,25 @@ export interface FTHTMLFormats {
 }
 
 export interface FTHTMLSettings {
+    codeactions: {
+        refactor: {
+            omit: string[]
+        }
+    },
+
     export: {
         onSave: boolean,
         onErrorOutputMode: string,
         clearOutput: boolean
-    }
+    },
+
     documentLinking: {
         enabled: boolean
     },
+
     validation: {
-        enabled: boolean
+        enabled: boolean,
+        enabledForExcludedGlobs: boolean
     },
 
     decorations: {
@@ -75,13 +85,19 @@ export interface FTHTMLSettings {
 }
 
 const DefaultSettings: FTHTMLSettings = {
+    codeactions: {
+        refactor: {
+            omit: []
+        }
+    },
     export: {
         onSave: true,
         onErrorOutputMode: "prompt",
         clearOutput: false
     },
     validation: {
-        enabled: true
+        enabled: true,
+        enabledForExcludedGlobs: false
     },
     shell: platform() === 'darwin' ? "/usr/local/bin" : undefined,
 
@@ -99,6 +115,7 @@ const DefaultSettings: FTHTMLSettings = {
             newLineAfterElement: true,
             newLineAfterEmbeddedLangs: false,
             newLineAfterAttributes: false,
+            newLineAfterLoop: false,
             newLineAfterImport: false,
             newLineAfterVariableOrPropertyBinding: false,
             addIdentifierCommentAfterClosingBrace: true,

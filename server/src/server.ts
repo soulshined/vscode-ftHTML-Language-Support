@@ -1,64 +1,48 @@
-import {
-    createConnection,
-    TextDocuments,
-    ProposedFeatures,
-    InitializeParams,
-    DidChangeConfigurationNotification,
-    InitializeResult,
-    HoverParams,
-    Hover,
-    TextDocumentPositionParams,
-    SignatureHelpParams,
-    SignatureHelp,
-    CodeActionParams,
-    CodeAction,
-    DocumentSymbolParams,
-    DocumentSymbol,
-    DefinitionParams,
-    Location,
-    DidChangeWatchedFilesParams,
-    FileEvent,
-    FileChangeType,
-    TextDocumentWillSaveEvent,
-    WillSaveTextDocumentWaitUntilRequest,
-    TextDocumentChangeEvent,
-    DidSaveTextDocumentNotification,
-    CompletionParams,
-    CompletionItem,
-    DocumentOnTypeFormattingParams,
-    CompletionTriggerKind,
-    FormattingOptions,
-    DocumentLinkParams,
-    DocumentLink,
-    DocumentHighlightParams,
-    SymbolKind,
-} from 'vscode-languageserver/node';
+import { existsSync, readFileSync } from 'fs';
+import parseFTHTMLConfig from 'fthtml/cli/utils/user-config-helper';
+import minimatch = require('minimatch');
 import { join } from "path";
 import {
     TextDocument,
     TextEdit
 } from 'vscode-languageserver-textdocument';
-import { CompletionResolveHandler, OnCompletionHandler } from './providers/completion/handler';
-import DefaultSettings, { FTHTMLConfigs, FTHTMLSettings } from './config/settings';
-import { HoverHandler } from './providers/hover/handler';
-import ScopeContext, { BaseContext, IScopeContext, TextDocumentEventContext } from './common/context';
-import FTHTMLServerCapabilities from './config/capabilities';
-import SignatureHelpHandler from './providers/signature/handler';
-import { OnCodeActionHandler } from './providers/code-actions/handler';
-import { FTHTMLDocumentFormatProvider } from './providers/formatting/document';
-import FTHTMLDocumentSymbolProviderHandler, { FTHTMLDocumentSymbolFilter } from './providers/symbol/document';
-import FTHTMLDefinitionProviderHandler from './providers/definition/handler';
+import {
+    CodeAction, CodeActionParams,
+    CompletionItem, CompletionParams,
+    CompletionTriggerKind, createConnection,
+    DefinitionParams, DidChangeConfigurationNotification,
+    DidChangeWatchedFilesParams,
+    DidSaveTextDocumentNotification,
+    DocumentHighlightParams, DocumentLink, DocumentLinkParams, DocumentOnTypeFormattingParams, DocumentSymbol, DocumentSymbolParams,
+    FileChangeType, FileEvent,
+    FormattingOptions, Hover, HoverParams, InitializeParams,
+    InitializeResult,
+    Location, ProposedFeatures,
+    SignatureHelp, SignatureHelpParams,
+    SymbolKind, TextDocumentChangeEvent, TextDocumentPositionParams, TextDocuments,
+    TextDocumentWillSaveEvent,
+    WillSaveTextDocumentWaitUntilRequest
+} from 'vscode-languageserver/node';
 import { URI } from 'vscode-uri';
-import { existsSync, readFileSync } from 'fs';
-import FTHTMLValidator from './parser/validator';
-import FTHTMLOnTypeProviderHandler from './providers/formatting/ontype';
 import { SELECTOR } from './common/constants';
-import { OnFileCompletionHandler } from './providers/completion/file/handler';
-import { OnDocumentLinkProvider } from './providers/document-link/handler';
-import FTHTMLExport from './parser/exporter';
-import parseFTHTMLConfig from 'fthtml/cli/utils/user-config-helper';
-import { VariableCompletionHandler } from './providers/completion/variable/handler';
+import ScopeContext, { BaseContext, IScopeContext, TextDocumentEventContext } from './common/context';
 import { debounce } from './common/utils/functions';
+import FTHTMLServerCapabilities from './config/capabilities';
+import DefaultSettings, { FTHTMLConfigs, FTHTMLSettings } from './config/settings';
+import FTHTMLExport from './parser/exporter';
+import FTHTMLValidator from './parser/validator';
+import { OnCodeActionHandler } from './providers/code-actions/handler';
+import { OnFileCompletionHandler } from './providers/completion/file/handler';
+import { CompletionResolveHandler, OnCompletionHandler } from './providers/completion/handler';
+import { StringIntepolationPipeCompletionHandler } from './providers/completion/pipes/handler';
+import { LiteralVariableCompletionHandler, VariableCompletionHandler } from './providers/completion/variable/handler';
+import FTHTMLDefinitionProviderHandler from './providers/definition/handler';
+import { OnDocumentLinkProvider } from './providers/document-link/handler';
+import { FTHTMLDocumentFormatProvider } from './providers/formatting/document';
+import FTHTMLOnTypeProviderHandler from './providers/formatting/ontype';
+import { HoverHandler } from './providers/hover/handler';
+import SignatureHelpHandler from './providers/signature/handler';
+import FTHTMLDocumentSymbolProviderHandler, { FTHTMLDocumentSymbolFilter } from './providers/symbol/document';
 
 // Create a connection for the server, using Node's IPC as a transport.
 // Also include all preview / proposed LSP features.
@@ -134,7 +118,7 @@ const Context = async (params: TextDocumentPositionParams | DocumentLinkParams |
     const ctx = await ScopeContext(params, documents, await getDocumentSettings(params.textDocument.uri), connection);
 
     if (ctx.workspace) {
-        if (!fthtmlconfig) updateFTHTMLConfig(join(URI.parse(ctx.workspace.uri).fsPath, 'fthtmlconfig.json'));
+        if (!fthtmlconfig) await updateFTHTMLConfig(join(URI.parse(ctx.workspace.uri).fsPath, 'fthtmlconfig.json'));
         ctx.config = fthtmlconfig;
     }
 
@@ -172,17 +156,17 @@ function getDocumentSettings(resource: string): Thenable<FTHTMLSettings> {
     return result;
 }
 
-function updateFTHTMLConfig(path) {
+async function updateFTHTMLConfig(path) {
     fthtmlconfig = undefined;
-    console.log('updating fthtmlconfig');
-
+    if (process.env.IS_DEBUG)
+        console.log('updating fthtmlconfig');
 
     if (existsSync(path)) {
         try {
             const content = readFileSync(path, 'utf-8');
             fthtmlconfig = {
                 path,
-                json: parseFTHTMLConfig(path).configs,
+                json: (await parseFTHTMLConfig(path)).configs,
                 content
             }
         } catch (error) {
@@ -212,8 +196,20 @@ async function validateTextDocument(document: TextDocument): Promise<void> {
     }
 
     if (scope.workspace) {
-        if (!fthtmlconfig) updateFTHTMLConfig(join(URI.parse(scope.workspace.uri).fsPath, 'fthtmlconfig.json'));
+        if (!fthtmlconfig) await updateFTHTMLConfig(join(URI.parse(scope.workspace.uri).fsPath, 'fthtmlconfig.json'));
         scope.config = fthtmlconfig;
+    }
+
+    if (fthtmlconfig) {
+        for (let i = 0; i < fthtmlconfig.json.excluded.length; i++) {
+            const x = fthtmlconfig.json.excluded[i];
+            if (minimatch(document.uri, x, { dot: true, nocase: true })) {
+                if (!scope.settings.validation.enabledForExcludedGlobs)
+                    return;
+
+                else break;
+            }
+        }
     }
 
     new FTHTMLValidator(scope);
@@ -230,7 +226,7 @@ documents.onWillSaveWaitUntil(async (params: TextDocumentWillSaveEvent<TextDocum
     }
 
     if (scope.workspace) {
-        if (!fthtmlconfig) updateFTHTMLConfig(join(URI.parse(scope.workspace.uri).fsPath, 'fthtmlconfig.json'));
+        if (!fthtmlconfig) await updateFTHTMLConfig(join(URI.parse(scope.workspace.uri).fsPath, 'fthtmlconfig.json'));
         scope.config = fthtmlconfig;
     }
 
@@ -243,16 +239,18 @@ documents.onDidSave(debounce(async (e: TextDocumentChangeEvent<TextDocument>) =>
 
     if (!scope || !scope.settings.export.onSave || !scope.workspace) return;
 
+    scope.config = fthtmlconfig;
+
     return FTHTMLExport(scope, extn, hasDiagnosticRelatedInformationCapability);
 }, 1000));
 
 connection.onDidChangeWatchedFiles((params: DidChangeWatchedFilesParams) => {
     connection.console.log('We received a file change event');
-    params.changes.forEach((e: FileEvent) => {
+    params.changes.forEach(async (e: FileEvent) => {
         if (e.uri.endsWith(".fthtml")) return;
 
         if (e.type === FileChangeType.Deleted) fthtmlconfig = undefined;
-        else updateFTHTMLConfig(URI.file(e.uri).path);
+        else await updateFTHTMLConfig(URI.file(e.uri).path);
     });
 });
 
@@ -264,6 +262,12 @@ connection.onCompletion(async (params: CompletionParams): Promise<CompletionItem
     if (params.context.triggerKind === CompletionTriggerKind.TriggerCharacter &&
         params.context.triggerCharacter === '@')
         return await VariableCompletionHandler(params, scope);
+    if (params.context.triggerKind === CompletionTriggerKind.TriggerCharacter &&
+        params.context.triggerCharacter === '.')
+        return await LiteralVariableCompletionHandler(params, scope);
+    if (params.context.triggerKind === CompletionTriggerKind.TriggerCharacter &&
+        params.context.triggerCharacter === '|')
+        return await StringIntepolationPipeCompletionHandler(params, scope);
     if (params.context.triggerKind === CompletionTriggerKind.TriggerCharacter)
         return await OnFileCompletionHandler(params, scope);
 
@@ -303,6 +307,8 @@ connection.onCodeAction(async (params: CodeActionParams): Promise<CodeAction[] |
     const scope = await BaseContext(params, documents, await getDocumentSettings(params.textDocument.uri), connection);
     if (!scope) return [];
 
+    scope.config = fthtmlconfig;
+
     return OnCodeActionHandler(params, scope);
 });
 
@@ -310,6 +316,8 @@ connection.onCodeAction(async (params: CodeActionParams): Promise<CodeAction[] |
 connection.onDocumentSymbol(async (params: DocumentSymbolParams): Promise<DocumentSymbol[]> => {
     const scope = await BaseContext(params, documents, await getDocumentSettings(params.textDocument.uri), connection);
     if (!scope) return [];
+
+    scope.config = fthtmlconfig;
 
     return FTHTMLDocumentSymbolProviderHandler(params, scope);
 })
@@ -330,7 +338,8 @@ connection.onRequest('pasted', async (e) => {
         document: e.doc,
         settings,
         connection,
-        workspace: undefined
+        workspace: undefined,
+        config: fthtmlconfig
     }
 
     const formatter = new FTHTMLDocumentFormatProvider(e.options, ctx);
@@ -364,7 +373,8 @@ connection.onRequest('decorations', async (e) => {
         document: e.doc,
         settings,
         connection,
-        workspace: undefined
+        workspace: undefined,
+        config: fthtmlconfig
     }
 
     FTHTMLDocumentSymbolFilter(e.doc.uri, ctx, [

@@ -1,6 +1,7 @@
-import { ftHTMLParser } from "fthtml/lib/parser/fthtml-parser";
-import { ftHTMLexerError, ftHTMLImportError, ftHTMLParserError, StackTrace } from "fthtml/lib/utils/exceptions";
-import { Diagnostic, DiagnosticSeverity, Range, _Connection } from "vscode-languageserver";
+import { FTHTMLParser } from "fthtml/lib/parser/fthtml-parser";
+import { FTHTMLExceptions } from "fthtml/lib/model/exceptions/fthtml-exceptions";
+import StackTrace from "fthtml/lib/model/exceptions/fthtml-stacktrace";
+import { Diagnostic, DiagnosticSeverity, Location, Range, _Connection } from "vscode-languageserver";
 import { URI } from "vscode-uri";
 import { IBaseContext } from "../common/context";
 
@@ -11,44 +12,46 @@ export default class FTHTMLValidator {
 
         let diagnostics: Diagnostic[] = [];
 
+        let uri = context.document.uri;
         try {
             StackTrace.clear();
 
             const file = URI.parse(context.document.uri).fsPath;
-            new ftHTMLParser().parseSrc(context.document.getText(), file.substring(0, file.length - 7), context.config.json);
+            new FTHTMLParser(context.config.json).parseSrc(context.document.getText(), file.substring(0, file.length - 7));
         } catch (error) {
-            if (error instanceof ftHTMLParserError ||
-                error instanceof ftHTMLexerError ||
-                error instanceof ftHTMLImportError) {
-                const { position } = error;
+            if (error instanceof FTHTMLExceptions.Parser ||
+                error instanceof FTHTMLExceptions.Lexer ||
+                error instanceof FTHTMLExceptions.Import) {
+                const at = error.stack.match(/^[ ]{4}at\s(import|template)?\s*\(/m);
+                const files = error.stack.substring(at.index).split("\n").map(m => {
+                    let fname = m.substring(m.indexOf('(') + 1, m.lastIndexOf(')'));
+                    fname = fname.substring(0, fname.lastIndexOf('.fthtml') + 7);
+                    const [line, col] = m.substring(m.lastIndexOf('.fthtml:') + 8).split(':');
 
-                const range = Range.create(
-                    position.line - 1,
-                    position.start - 1,
-                    position.line - 1,
-                    position.end ? position.end - 1 : position.start - 1
-                );
+                    let start: number = parseInt(line) - 1;
+                    let end: number = parseInt(col.trim().substring(0,col.trim().length - 1)) - 1;
+                    const fend = /^[ ]{4}at\s(import|template)/.test(m) ? end + 6 : end + 1;
+
+                    return {
+                        location: Location.create(URI.file(fname).path, Range.create(start, end, start, fend)),
+                        message: error.stack
+                    }
+                });
+
+                const first = files.pop();
+                uri = first.location.uri;
 
                 diagnostics.push({
                     severity: DiagnosticSeverity.Error,
-                    range,
+                    range : first.location.range,
                     message: error.message,
                     source: "fthtml",
-                    relatedInformation: !error.stack ? undefined :
-                        [
-                            {
-                                location: {
-                                    range,
-                                    uri: context.document.uri
-                                },
-                                message: error.stack
-                            }
-                        ]
+                    relatedInformation: !error.stack ? undefined : files
                 })
             }
         }
         finally {
-            context.connection.sendDiagnostics({ uri: context.document.uri, diagnostics })
+            context.connection.sendDiagnostics({ uri, diagnostics })
         }
 
     }

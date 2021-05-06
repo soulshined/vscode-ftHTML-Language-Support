@@ -41,6 +41,7 @@ function _update(client) {
                 const text = window.activeTextEditor.document.getText();
                 const tinyts: DecorationOptions[] = [];
 
+                if (data)
                 Object.keys(data).forEach(tt => {
                     const regEx = new RegExp(`(?<=(^|\\s|\\(|{|}|\\)))${tt}(?=($|\\s|\\(|\\)|}|{))`, 'g');
                     let match;

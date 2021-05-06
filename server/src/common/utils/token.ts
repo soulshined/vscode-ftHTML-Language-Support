@@ -1,17 +1,16 @@
-import { IFTHTMLElement } from "fthtml/lib/parser/types";
-import { TOKEN_TYPE as TT } from "fthtml/lib/lexer/token";
-import { isExpectedType, isOneOfExpectedTypes } from "fthtml/lib/utils/functions";
+import { FTHTMLElement } from "fthtml/lib/model/fthtmlelement";
+import { Token } from "fthtml/lib/model/token";
 
-export function getFTHTMLTokenValue(element: IFTHTMLElement) {
-    if (isExpectedType(element.token, TT.ATTR_CLASS))
+export function getFTHTMLTokenValue(element: FTHTMLElement) {
+    if (Token.isExpectedType(element.token, Token.TYPES.ATTR_CLASS))
         return `.${element.token.value}`;
-    if (isExpectedType(element.token, TT.VARIABLE))
+    if (Token.isOneOfExpectedTypes(element.token, Token.Sequences.VARIABLE))
         return `@${element.token.value}`;
-    if (isExpectedType(element.token, TT.ATTR_CLASS_VAR))
+    if (Token.isExpectedType(element.token, Token.TYPES.ATTR_CLASS_VAR))
         return `.@${element.token.value}`;
-    if (isOneOfExpectedTypes(element.token, [TT.ATTR_ID, TT.PRAGMA]))
+    if (Token.isOneOfExpectedTypes(element.token, [Token.TYPES.ATTR_ID, Token.TYPES.PRAGMA]))
         return `#${element.token.value}`;
-    if (isExpectedType(element.token, TT.STRING))
+    if (Token.isExpectedType(element.token, Token.TYPES.STRING))
         return `${element.token.delimiter}${element.token.value}${element.token.delimiter}`;
 
     return element.token.value;

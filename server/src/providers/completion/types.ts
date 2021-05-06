@@ -1,4 +1,4 @@
-import { CompletionItem, CompletionItemKind, MarkupKind, Range, TextEdit } from "vscode-languageserver";
+import { CompletionItem, CompletionItemKind, MarkupKind, Position, Range, TextEdit } from "vscode-languageserver";
 import { IFileCompletionItemInfo } from "./file/completion-model";
 
 abstract class AbstractCompletionItem {
@@ -91,6 +91,35 @@ export function VariableCompletionItem(label: string, detail: string): Completio
         detail,
         insertText: `@${label}`,
         filterText: label
+    }
+}
+
+export function LiteralVariableMemberCompletionItem(label: string, position: Position, detail?: string): CompletionItem {
+    let _label = label;
+    const additionalEdits = [];
+    if (/^[_0-9]+$/.test(label) || !/^[\w-]+$/.test(label)) {
+        _label = `['${label}']`;
+        additionalEdits.push(<TextEdit>{
+            newText: '',
+            range: {
+                start: {
+                    line: position.line,
+                    character: position.character - 1
+                },
+                end: {
+                    line: position.line,
+                    character: position.character
+                }
+            }
+        })
+    }
+
+    return {
+        label,
+        kind: CompletionItemKind.Property,
+        insertText: _label,
+        additionalTextEdits: additionalEdits,
+        detail
     }
 }
 

@@ -19,6 +19,11 @@ export const misc_methods: { [key: string]: fthtmlfunc } = {
         parameters: []
     },
 
+    each: {
+        documentation: `This keyword loops over any iterable-like objects. To access the current iterator element, use \`@this\` variable. @this accessors are scoped to their respective for-each loops and can not be renamed.`,
+        returnType: 'void',
+        parameters: []
+    },
 
     import: {
         documentation: `Imports another ftHTML file and parses it inline at import position.
@@ -184,7 +189,7 @@ join(@date "/")
             {
                 name: "value",
                 isOptional: false,
-                datatype: ["Variable"]
+                datatype: ["Variable", 'Function_keys', 'Function_range', 'Function_sort', 'Function_str_split', 'Function_values']
             },
             {
                 name: "delimiter",
@@ -221,6 +226,18 @@ myJson json("foo")
                 documentation: `A filename should exclude the \`.json\` extension.
 
 If an \`fthtmlconfig.json\` file is being used to set the \`jsonDir\`, you can explicitly force a relative path by prepending the filename with the 'by reference' symbol \`&\``
+            }
+        ]
+    },
+    keys: {
+        documentation: `Return the keys of a given object. Throws if the value does not resolve to a literal object`,
+        returnType: 'any[]',
+        parameters: [
+            {
+                name: 'value',
+                isOptional: false,
+                datatype: ["Variable"],
+                documentation: `Must resolve to a literal object`
             }
         ]
     },
@@ -317,6 +334,35 @@ Negative values are permitted.`
             }
         ]
     },
+    range: {
+        documentation: `Returns an array of numbers within the given range provided (exclusive).
+
+If the upper bound number is omitted, the starting value is always 0 and the value provided becomes the upper bound
+
+Examples:
+
+\`\`\`fthtml
+each range(10) {}
+//range = [0,1,2,3,4,5,6,7,8,9]
+each range(2 8) {}
+//range = [2,3,4,5,6,7]
+\`\`\``,
+        returnType: 'number',
+        parameters: [
+            {
+                name: 'start',
+                isOptional: false,
+                datatype: ["Word", "Function_len"],
+                documentation: `When the start value is the only value provided, it becomes the upper bound value, and the loop will automatically start from 0 at the lower bound`
+            },
+            {
+                name: 'end',
+                isOptional: true,
+                datatype: ["Word", "Function_len"],
+                documentation: `[Optional] When omitted, the range lower bound is automatcially 0`
+            }
+        ]
+    },
     replace: {
         documentation: `Replace a pattern of values with a given replacement value.
 
@@ -350,6 +396,36 @@ Pattern uses regular javascript flavor rules.`,
                 name: 'replace value',
                 isOptional: false,
                 datatype: ["String", "Variable", "Function"]
+            }
+        ]
+    },
+    sort: {
+        documentation: `Sort a given value. This is not a true sort and does slight validation of data types, but it sorts strings or arrays of strings accordingly, in addition to numbers`,
+        returnType: 'any[]',
+        parameters: [
+            {
+                name: 'value',
+                isOptional: false,
+                datatype: [
+                    'String',
+                    'Variable',
+                    'Function'
+                ]
+            },
+            {
+                name: 'Sort Type',
+                isOptional: true,
+                enum: {
+                    values: ['asc', 'desc'],
+                    default: 'asc'
+                },
+                datatype: ["enum => 'asc', 'desc'"]
+            },
+            {
+                name: 'Member Name',
+                isOptional: true,
+                datatype: ["Word"],
+                documentation: 'To sort by an object member enter the member name here'
             }
         ]
     },
@@ -622,6 +698,18 @@ div trim("   Hello. World.   " "start")
                 datatype: ["enum => 'left', 'right', 'start', 'end', 'trim' = 'trim'"]
             }
         ]
+    },
+    values: {
+        documentation: `Return the values of a given object. Throws if the value does not resolve to a literal object`,
+        returnType: 'any[]',
+        parameters: [
+            {
+                name: 'value',
+                isOptional: false,
+                datatype: ["Variable"],
+                documentation: `Must resolve to a literal object`
+            }
+        ]
     }
 }
 
@@ -631,7 +719,7 @@ export function paramsToString(params: any): string {
     params.forEach((param: any) => {
         const name = `${param.isRestParameter ? '...' : ''}${param.name}`;
         const optional = param.isOptional ? '?' : '';
-        const types = param.datatype.map((type: any) => param.isRestParameter ? `${type}[]` : type).join(' | ')
+        const types = param.datatype.map((type: any) => param.isRestParameter ? `${type}[]` : type.startsWith('Function_') ? `${type.substring(type.indexOf('_') + 1)}()` : type).join(' | ')
         result.push(`${name}${optional}: ${types}`)
     })
 
@@ -649,6 +737,9 @@ export function getFunctionConstructor(funcName: string): string {
     }
     else if ("comment" === funcName) {
         return `${funcName} <value: String>`;
+    }
+    else if ("each" === funcName) {
+        return `each <value: Iterable>`;
     }
     else {
         return `${funcName}(${paramsToString(func.parameters)})`;

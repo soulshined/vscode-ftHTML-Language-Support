@@ -4,7 +4,10 @@ import functions from "../../../common/documentation/functions";
 import macros from "../../../common/documentation/macros";
 import { ConstantCompletionItem, FunctionCompletionItem, KeywordCompletionItem, MarkdownDocumentation, VariableCompletionItem } from "../types";
 
-export function getFunctionCompletionItems() {
+export function getFunctionCompletionItems(predicate?: (key) => boolean) {
+    if (predicate)
+        return Object.keys(functions).filter(predicate).map(FunctionCompletionItem);
+
     return Object.keys(functions).map(FunctionCompletionItem);
 }
 

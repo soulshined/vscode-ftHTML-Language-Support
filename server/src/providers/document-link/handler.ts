@@ -70,6 +70,8 @@ function _getImportSymbol(val: string, range: Range, context) {
     const isByReference = val.startsWith('&');
     if (isByReference) val = val.substring(1);
 
+    if (val.endsWith('$')) return;
+
     if (!val.startsWith('./') && !val.startsWith('/')) val = './' + val;
     else if (val.startsWith('/')) val = '.' + val;
 

@@ -85,17 +85,24 @@ async function _getVariableDefinitions(range: Range, { document, config }: IScop
 
         if (config.json.globalvars && config.json.globalvars[word] ||
             config.json.tinytemplates && config.json.tinytemplates[word]) {
-            const indx = config.content.indexOf(`"${word}"`);
+            let indx = config.content.indexOf(`"${word}"`);
 
-            let chars = 0;
-            let line = 0;
-            while ((chars += fthtmlconfigLines[line++].length + "\n".length) <= indx + word.length) { }
+            if (indx === -1) {
+                word = "extend";
+                indx = config.content.indexOf(`"${word}"`);
+            }
 
-            line = Math.max(line - 1, 0);
-            locations.push({
-                uri: URI.file(config.path).path,
-                range: Range.create(line, fthtmlconfigLines[line].indexOf(word), line, fthtmlconfigLines[line].indexOf(word) + word.length)
-            })
+            if (indx >= 0) {
+                let chars = 0;
+                let line = 0;
+                while ((chars += fthtmlconfigLines[line++].length + "\n".length) <= indx + word.length) { }
+
+                line = Math.max(line - 1, 0);
+                locations.push({
+                    uri: URI.file(config.path).path,
+                    range: Range.create(line, fthtmlconfigLines[line].indexOf(word), line, fthtmlconfigLines[line].indexOf(word) + word.length)
+                })
+            }
         }
     }
 

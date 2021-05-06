@@ -184,6 +184,11 @@
                     "default": false,
                     "description": "This adds a new line to any variable or property binding value being defined that uses ftHTML Blocks"
                 },
+                "fthtml.format.braces.newLineAfterLoop": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "This adds a new line after loop statements"
+                },
                 "fthtml.format.braces.addIdentifierCommentAfterClosingBrace": {
                     "type": "boolean",
                     "default": true,
@@ -372,6 +377,11 @@
                     "default": true,
                     "description": "This will validate the syntax everytime you make changes or save an ftHTML file or open a new file (stops validating at first found error: displays in 'Problems Panel')"
                 },
+                "fthtml.validation.enabledForExcludedGlobs": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "This will not validate if the current file is matched against any of your excluded globs in your fthtmlconfig.json file, or it's extended members"
+                },
                 "fthtml.documentLinking.enabled": {
                     "type": "boolean",
                     "default": true,
@@ -402,6 +412,18 @@
                     "default": false,
                     "description": "Clear output before each time an export is started"
                 },
+                "fthtml.codeactions.refactor.omit": {
+                    "type": "array",
+                    "uniqueItems": true,
+                    "description": "List of code actions that will not populate for refactoring options",
+                    "items": {
+                        "enum": [
+                            "interpolate",
+                            "html_encode"
+                        ],
+                        "default": []
+                    }
+                },
                 "fthtml.shell": {
                     "type": "string",
                     "description": "The directory to the desired shell to use to call node for converting files. For macs this defaults to '/usr/local/bin' and for Windows defaults to 'process.env.ComSpec'"
@@ -425,9 +447,9 @@
         "@types/mocha": "^7.0.2",
         "@types/node": "^8.10.61",
         "@types/vscode": "^1.45.1",
-        "vscode-test": "^1.4.0",
-        "mocha": "^7.2.0",
-        "typescript": "^4.2.2"
+        "mocha": "^8.4.0",
+        "typescript": "^4.2.2",
+        "vscode-test": "^1.4.0"
     },
     "dependencies": {}
 }

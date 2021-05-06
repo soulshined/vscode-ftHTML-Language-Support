@@ -1,8 +1,7 @@
-import { TOKEN_TYPE as TT } from "fthtml/lib/lexer/token";
-import { ftHTMLParser } from "fthtml/lib/parser/fthtml-parser";
-import { IFTHTMLElement } from "fthtml/lib/parser/types";
-import { StackTrace } from "fthtml/lib/utils/exceptions";
-import { isExpectedType, isOneOfExpectedTypes } from "fthtml/lib/utils/functions";
+import { Token } from "fthtml/lib/model/token";
+import { FTHTMLParser } from "fthtml/lib/parser/fthtml-parser";
+import { FTHTMLElement } from "fthtml/lib/model/fthtmlelement";
+import StackTrace from "fthtml/lib/model/exceptions/fthtml-stacktrace";
 import { DocumentSymbol, DocumentSymbolParams, SymbolKind } from "vscode-languageserver";
 import { URI } from "vscode-uri";
 import { IBaseContext } from "../../common/context";
@@ -14,7 +13,6 @@ export default function FTHTMLDocumentSymbolProviderHandler(params: DocumentSymb
         StackTrace.clear();
         return FTHTMLDocumentSymbolFilter(URI.parse(params.textDocument.uri), context);
     } catch (error) {
-        console.log("Error rendering file for document symbols", error);
         return [];
     }
 
@@ -40,42 +38,41 @@ export function FTHTMLDocumentSymbolFilter(uri: URI, context: IBaseContext, allo
 
         StackTrace.clear();
 
-        return _getSymbols(new ftHTMLParser().parseFile(filename), context.settings.includeTagNamesInSymbols, allowedSymbols);
+        return _getSymbols(new FTHTMLParser(context.config.json).parseFile(filename), context.settings.includeTagNamesInSymbols, allowedSymbols);
     } catch (error) {
-        console.log("Error rendering file for document symbols", error);
         return [];
     }
 }
 
-function _isSymbolType(element: IFTHTMLElement) {
-    return isOneOfExpectedTypes(element.token, ['Keyword_import', TT.VARIABLE, TT.FUNCTION, TT.MACRO, 'Word_json']);
+function _isSymbolType(element: FTHTMLElement) {
+    return Token.isOneOfExpectedTypes(element.token, ['Keyword_import', Token.TYPES.VARIABLE, Token.TYPES.FUNCTION, Token.TYPES.MACRO, 'Word_json']);
 }
 
-function _isSymbolTypeForProperties(element: IFTHTMLElement) {
-    return isOneOfExpectedTypes(element.token, ['Keyword_import', 'Pragma_templates', 'Pragma_tinytemplates', 'Pragma_vars']);
+function _isSymbolTypeForProperties(element: FTHTMLElement) {
+    return Token.isOneOfExpectedTypes(element.token, ['Keyword_import', 'Pragma_templates', 'Pragma_tinytemplates', 'Pragma_vars']);
 }
 
-function _getSymbolKind(element: IFTHTMLElement): SymbolKind {
-    if (isOneOfExpectedTypes(element.token, [TT.VARIABLE, TT.ATTR_CLASS_VAR]))
+function _getSymbolKind(element: FTHTMLElement): SymbolKind {
+    if (Token.isOneOfExpectedTypes(element.token, [Token.TYPES.VARIABLE, Token.TYPES.ATTR_CLASS_VAR]))
         return SymbolKind.Variable;
-    if (isExpectedType(element.token, TT.MACRO))
+    if (Token.isExpectedType(element.token, Token.TYPES.MACRO))
         return SymbolKind.Constant;
-    if (isExpectedType(element.token, TT.FUNCTION))
+    if (Token.isExpectedType(element.token, Token.TYPES.FUNCTION))
         return SymbolKind.Function;
-    if (isExpectedType(element.token, 'Keyword_import'))
+    if (Token.isExpectedType(element.token, 'Keyword_import'))
         return SymbolKind.Method;
-    if (isOneOfExpectedTypes(element.token, ['Pragma_vars', 'Pragma_tinytemplates', 'Pragma_templates']))
+    if (Token.isOneOfExpectedTypes(element.token, ['Pragma_vars', 'Pragma_tinytemplates', 'Pragma_templates']))
         return SymbolKind.Struct;
 
     return SymbolKind.Null;
 }
 
-const NewDocumentSymbol = function (element: IFTHTMLElement): DocumentSymbol {
+const NewDocumentSymbol = function (element: FTHTMLElement): DocumentSymbol {
     const kind = _getSymbolKind(element);
 
     let detail;
     if (kind === SymbolKind.Struct) {
-        if (isExpectedType(element.token, 'Pragma_vars')) {
+        if (Token.isExpectedType(element.token, 'Pragma_vars')) {
             detail = 'variables directive';
         }
         else {
@@ -87,6 +84,8 @@ const NewDocumentSymbol = function (element: IFTHTMLElement): DocumentSymbol {
         kind,
         detail,
         name: element.token.value,
+        // @ts-ignore
+        value: element.parsedValue,
         range: {
             start: {
                 line: element.token.position.line - 1,
@@ -124,17 +123,17 @@ function _getFlatListOfSymbols(symbols: DocumentSymbol[], allowedSymbols: Symbol
     return links
 }
 
-function _getSymbols(elements: IFTHTMLElement[], includeTagNamesInSymbols: boolean, allowedSymbols: SymbolKind[], isPropertyLevel: boolean = false): DocumentSymbol[] {
+function _getSymbols(elements: FTHTMLElement[], includeTagNamesInSymbols: boolean, allowedSymbols: SymbolKind[], isPropertyLevel: boolean = false): DocumentSymbol[] {
     const syms: DocumentSymbol[] = [];
     elements.forEach(element => {
-        if (isExpectedType(element.token, TT.STRING)) return;
+        if (Token.isExpectedType(element.token, Token.TYPES.STRING)) return;
         if (!_isSymbolType(element) && element.children.length === 0 && !element.attrs) return;
         const sym: DocumentSymbol = NewDocumentSymbol(element);
-        if (isPropertyLevel && isExpectedType(element.token, TT.WORD)) sym.kind = SymbolKind.Property;
+        if (isPropertyLevel && Token.isExpectedType(element.token, Token.TYPES.WORD)) sym.kind = SymbolKind.Property;
 
         if (element.attrs) {
             element.attrs.get('classes').forEach(attr => {
-                if (isOneOfExpectedTypes(attr.token, [TT.ATTR_CLASS_VAR]) && allowedSymbols.includes(SymbolKind.Variable)) {
+                if (Token.isOneOfExpectedTypes(attr.token, [Token.TYPES.ATTR_CLASS_VAR]) && allowedSymbols.includes(SymbolKind.Variable)) {
                     if (includeTagNamesInSymbols)
                         sym.children.push(NewDocumentSymbol(attr));
                     else
@@ -143,7 +142,7 @@ function _getSymbols(elements: IFTHTMLElement[], includeTagNamesInSymbols: boole
             })
 
             element.attrs.get('kvps').forEach(attr => {
-                if (isOneOfExpectedTypes(attr.children[0].token, [TT.MACRO, TT.VARIABLE])) {
+                if (Token.isOneOfExpectedTypes(attr.children[0].token, [Token.TYPES.MACRO, Token.TYPES.VARIABLE])) {
                     const val = NewDocumentSymbol(attr.children[0]);
                     if (allowedSymbols.includes(val.kind)) {
                         if (includeTagNamesInSymbols) sym.children.push(val);
@@ -153,7 +152,7 @@ function _getSymbols(elements: IFTHTMLElement[], includeTagNamesInSymbols: boole
             })
 
             element.attrs.get('misc').forEach(attr => {
-                if (isOneOfExpectedTypes(attr.token, [TT.MACRO, TT.VARIABLE])) {
+                if (Token.isOneOfExpectedTypes(attr.token, [Token.TYPES.MACRO, Token.TYPES.VARIABLE])) {
                     const val = NewDocumentSymbol(attr);
                     if (allowedSymbols.includes(val.kind)) {
                         if (includeTagNamesInSymbols) sym.children.push(val);
@@ -176,7 +175,7 @@ function _getSymbols(elements: IFTHTMLElement[], includeTagNamesInSymbols: boole
             syms.push(..._getSymbols(element.children, includeTagNamesInSymbols, allowedSymbols));
         else {
 
-            if (isExpectedType(element.token, 'Keyword_import')) {
+            if (Token.isExpectedType(element.token, 'Keyword_import')) {
                 sym.name = `import ${getFTHTMLTokenValue(element.children[0])}`;
                 let children;
                 if (element.isParentElement) {
@@ -188,14 +187,14 @@ function _getSymbols(elements: IFTHTMLElement[], includeTagNamesInSymbols: boole
                 else if (children) syms.push(..._getFlatListOfSymbols(children, allowedSymbols));
                 return;
             }
-            else if (isExpectedType(element.token, TT.FUNCTION)) {
+            else if (Token.isExpectedType(element.token, Token.TYPES.FUNCTION)) {
                 sym.name = `${element.token.value}(${element.children.map(arg => getFTHTMLTokenValue(arg)).join(" ")})`;
             }
-            else if (isExpectedType(element.token, 'Word_json')) {
+            else if (Token.isExpectedType(element.token, 'Word_json')) {
                 sym.name = `json ${getFTHTMLTokenValue(element.children[0])}`;
                 sym.kind = SymbolKind.Function;
             }
-            else if (isExpectedType(element.token, TT.WORD) && element.attrs) {
+            else if (Token.isExpectedType(element.token, Token.TYPES.WORD) && element.attrs) {
                 if (element.attrs.get('id').length === 1)
                     sym.name = `${element.token.value}#${element.attrs.get('id')[0].token.value}`;
                 else if (element.attrs.get('classes').length > 0)
