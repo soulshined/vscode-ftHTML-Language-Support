@@ -13,6 +13,7 @@ import {
     DefinitionParams, DidChangeConfigurationNotification,
     DidChangeWatchedFilesParams,
     DidSaveTextDocumentNotification,
+    DocumentFormattingParams,
     DocumentHighlightParams, DocumentLink, DocumentLinkParams, DocumentOnTypeFormattingParams, DocumentSymbol, DocumentSymbolParams,
     FileChangeType, FileEvent,
     FormattingOptions, Hover, HoverParams, InitializeParams,
@@ -284,6 +285,25 @@ connection.onDocumentOnTypeFormatting(async (params: DocumentOnTypeFormattingPar
     if (!scope) return [];
 
     return FTHTMLOnTypeProviderHandler(params, scope);
+})
+
+connection.onDocumentFormatting(async (params: DocumentFormattingParams): Promise<TextEdit[]> => {
+    const scope = await TextDocumentEventContext(params.textDocument, documents, await getDocumentSettings(params.textDocument.uri), connection);
+    if (!scope || !scope.settings.format.enabled) return [];
+
+    const formatOpts: FormattingOptions = {
+        insertSpaces: await connection.workspace.getConfiguration("editor.insertSpaces"),
+        tabSize: await connection.workspace.getConfiguration("editor.tabSize"),
+        insertFinalNewline: await connection.workspace.getConfiguration("editor.insertFinalNewline")
+    }
+
+    if (scope.workspace) {
+        if (!fthtmlconfig) await updateFTHTMLConfig(join(URI.parse(scope.workspace.uri).fsPath, 'fthtmlconfig.json'));
+        scope.config = fthtmlconfig;
+    }
+
+    const formatter = new FTHTMLDocumentFormatProvider(formatOpts, scope);
+    return Promise.resolve(formatter.format(scope));
 })
 
 // hover provider

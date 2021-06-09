@@ -19,6 +19,7 @@ const FTHTMLServerCapabilities: ServerCapabilities = {
     },
     documentSymbolProvider: true,
     definitionProvider: true,
+    documentFormattingProvider: true,
     documentOnTypeFormattingProvider: {
         firstTriggerCharacter: "\n"
     },

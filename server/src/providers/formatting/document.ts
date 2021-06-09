@@ -72,17 +72,19 @@ export class FTHTMLDocumentFormatProvider {
         const isEmbeddedLang = ['style', 'script'].includes(node.tag);
 
         if (isEmbeddedLang) {
+            const elang = node.tag === 'script' ? 'js' : 'css';
             if (!node.attributes) {
-                const elang = node.tag === 'script' ? 'js' : 'css';
                 const { start } = this.getBracesForType(new Token(Token.TYPES.ELANG, elang, { line: 0, column: 0, end: 0 }), null, indentation);
                 fthtml += `${elang}${start}`;
             }
+            else if (elang === 'css') fthtml += elang;
+            else fthtml += node.tag;
         }
         else fthtml += node.tag;
 
         const element: FTHTMLElement = new FTHTMLElement(new Token(Token.TYPES.WORD, node.tag, { line: 0, column: 0, end: 0 }));
 
-        if (node.attributes) {
+        if (node.attributes && node.tag !== 'style') {
             const ftattrs = new FTHTMLElement.Attributes();
             element.attrs = ftattrs.default;
 
@@ -130,7 +132,13 @@ export class FTHTMLDocumentFormatProvider {
         }
         else if (node.children.length === 0 && !SELF_CLOSING_TAGS.includes(node.tag.toLocaleLowerCase())) {
             const body = html.substring(node.startTagEnd, node.endTagStart);
-            if (isEmbeddedLang) fthtml += `${body}\n${indentation}}`
+            if (isEmbeddedLang) {
+                if (body.trim().length > 0 || node.tag === 'style') {
+                    fthtml += ' ';
+                    if (node.tag === 'style') fthtml += '{';
+                    fthtml += `${body}\n${indentation}}`;
+                }
+            }
             else if (FTHTMLMacros.ALL[body]) fthtml += ` ${body}`;
             else if (this.escapeString(body).trim().length > 0)
                 fthtml += ` ${this.formats.onPasteHTML.quotationMark}${this.escapeString(body)}${this.formats.onPasteHTML.quotationMark}`;
@@ -357,7 +365,7 @@ export class FTHTMLDocumentFormatProvider {
         this.last_element = child;
         if (child.children.length > 0) {
             if (Token.isExpectedType(child.children[0].token, Token.TYPES.FUNCTION))
-                line += ` ${this.prettifyFunctionInline(child.children[0])})`;
+                line += ` ${this.prettifyFunctionInline(child.children[0])}`;
             else
                 line += ` ${getFTHTMLTokenValue(child.children[0])}`;
             this.last_element = child.children[0];
@@ -658,8 +666,8 @@ export class FTHTMLDocumentFormatProvider {
                     text += `${spacing}${element.token.value}`;
             }
             else if (Token.isExpectedType(element.token, Token.TYPES.FUNCTION)) {
-                // if (!this.isLastElementOfType([Token.TYPES.WORD])) text += '\n';
                 if (this.isLastElementOfType([Token.TYPES.WORD, Token.TYPES.STRING])) {
+                    text = text.trimEnd();
                     text += ` ${valueSpacing}${this.prettifyFunctionInline(element)}`;
                 }
                 else {

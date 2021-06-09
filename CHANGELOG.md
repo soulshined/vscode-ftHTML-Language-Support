@@ -1,5 +1,12 @@
 # Change Log
 
+## [v6.1.0]
+
+- Formatting enhancements
+  - Added support for vscode to pick up the formatter automatically instead of just on save
+  - Minor tweaks to inline formatting
+- Fix issue where HTML on paste would not properly format a `<script>` element
+
 ## [v6.0.0]
 
 Support for new ftHTML 5.0 - Onyx

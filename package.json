@@ -2,7 +2,7 @@
     "name": "fthtml-language-support",
     "displayName": "ftHTML Language Support",
     "description": "Support for fthtml preprocessor language, including automatic file detection, syntax highlighting, basic formatting, snippets and more",
-    "version": "6.0.0",
+    "version": "6.1.0",
     "publisher": "davidfreer",
     "bugs": {
         "url": "https://github.com/soulshined/vscode-ftHTML-Language-Support/issues"

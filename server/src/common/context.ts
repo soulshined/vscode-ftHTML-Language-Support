@@ -1,4 +1,4 @@
-import { CodeActionParams, DocumentFormattingParams, DocumentLinkParams, DocumentSymbolParams, Position, Range, TextDocumentPositionParams, TextDocuments, WorkspaceFolder, _Connection } from "vscode-languageserver";
+import { CodeActionParams, DocumentFormattingParams, DocumentLinkParams, DocumentSymbolParams, Position, Range, TextDocumentIdentifier, TextDocumentPositionParams, TextDocuments, WorkspaceFolder, _Connection } from "vscode-languageserver";
 import { TextDocument } from "vscode-languageserver-textdocument";
 import { FTHTMLConfigs, FTHTMLSettings } from "../config/settings";
 
@@ -43,7 +43,7 @@ export async function BaseContext(params: CodeActionParams | DocumentFormattingP
     }
 }
 
-export async function TextDocumentEventContext(document: TextDocument, documents: TextDocuments<TextDocument>, settings: FTHTMLSettings, connection: _Connection): Promise<IBaseContext> {
+export async function TextDocumentEventContext(document: TextDocument | TextDocumentIdentifier, documents: TextDocuments<TextDocument>, settings: FTHTMLSettings, connection: _Connection): Promise<IBaseContext> {
     const doc = documents.get(document.uri);
     if (!doc) return;
 
