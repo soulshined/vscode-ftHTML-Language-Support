@@ -165,6 +165,7 @@ export class FTHTMLDocumentFormatProvider {
 
             return Promise.resolve([TextEdit.replace(this.document.totalRange, formatted)]);
         } catch (error) {
+            console.log('Error formatting:', error);
             return [];
         }
     }

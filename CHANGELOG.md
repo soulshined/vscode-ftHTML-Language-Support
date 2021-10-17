@@ -1,5 +1,9 @@
 # Change Log
 
+## [v6.1.1]
+
+- Fix issue where workspaces without an fthtmlconfig file did not allow formatting
+
 ## [v6.1.0]
 
 - Formatting enhancements

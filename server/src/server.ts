@@ -174,6 +174,13 @@ async function updateFTHTMLConfig(path) {
             console.log(error);
         }
     }
+    else {
+        fthtmlconfig = {
+            path: undefined,
+            json: (await parseFTHTMLConfig(path)).configs,
+            content: undefined
+        }
+    }
 }
 
 // Only keep settings for open documents
